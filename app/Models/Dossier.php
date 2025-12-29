@@ -4,15 +4,41 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class Dossier extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nom', 'client_id'];
+    protected $fillable = [
+        'client_id',
+        'nom',
+        'reference',
+        'type_dossier',
+        'description',
+        'date_ouverture',
+        'date_cloture_prevue',
+        'date_cloture_reelle',
+        'statut',
+        'budget',
+        'frais_dossier',
+        'document',
+        'notes'
+    ];
+
+    protected $casts = [
+        'date_ouverture' => 'date',
+        'date_cloture_prevue' => 'date',
+        'date_cloture_reelle' => 'date',
+        'budget' => 'decimal:2',
+        'frais_dossier' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
 
     /**
-     * Un dossier appartient à un client
+     * Relation avec le client
      */
     public function client()
     {
@@ -20,10 +46,187 @@ class Dossier extends Model
     }
 
     /**
-     * Un dossier a plusieurs entrées de temps
+     * Accessor pour l'URL du document
      */
-    public function timeEntries()
+    public function getDocumentUrlAttribute()
     {
-        return $this->hasMany(TimeEntry::class);
+        if (!$this->document) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->document);
+    }
+
+    /**
+     * Accessor pour le nom du fichier document
+     */
+    public function getDocumentNameAttribute()
+    {
+        if (!$this->document) {
+            return null;
+        }
+
+        return basename($this->document);
+    }
+
+    /**
+     * Accessor pour le type de dossier formaté
+     */
+    public function getTypeDossierBadgeAttribute()
+    {
+        $badges = [
+            'audit' => 'primary',
+            'conseil' => 'info',
+            'formation' => 'success',
+            'expertise' => 'warning',
+            'autre' => 'secondary'
+        ];
+
+        $labels = [
+            'audit' => 'Audit',
+            'conseil' => 'Conseil',
+            'formation' => 'Formation',
+            'expertise' => 'Expertise',
+            'autre' => 'Autre'
+        ];
+
+        return '<span class="badge badge-' . ($badges[$this->type_dossier] ?? 'secondary') . '">'
+            . ($labels[$this->type_dossier] ?? ucfirst($this->type_dossier)) . '</span>';
+    }
+
+    /**
+     * Accessor pour le statut formaté
+     */
+    public function getStatutBadgeAttribute()
+    {
+        $badges = [
+            'ouvert' => 'info',
+            'en_cours' => 'primary',
+            'suspendu' => 'warning',
+            'cloture' => 'success',
+            'archive' => 'secondary'
+        ];
+
+        $labels = [
+            'ouvert' => 'Ouvert',
+            'en_cours' => 'En cours',
+            'suspendu' => 'Suspendu',
+            'cloture' => 'Clôturé',
+            'archive' => 'Archivé'
+        ];
+
+        return '<span class="badge badge-' . ($badges[$this->statut] ?? 'secondary') . '">'
+            . ($labels[$this->statut] ?? ucfirst($this->statut)) . '</span>';
+    }
+
+    /**
+     * Accessor pour la durée du dossier
+     */
+    public function getDureeAttribute()
+    {
+        if ($this->date_cloture_reelle) {
+            $end = Carbon::parse($this->date_cloture_reelle);
+        } elseif ($this->date_cloture_prevue) {
+            $end = Carbon::parse($this->date_cloture_prevue);
+        } else {
+            $end = now();
+        }
+
+        $start = Carbon::parse($this->date_ouverture);
+
+        return $start->diffInDays($end);
+    }
+
+    /**
+     * Accessor pour le budget formaté
+     */
+    public function getBudgetFormateAttribute()
+    {
+        if (!$this->budget) {
+            return '-';
+        }
+
+        return number_format($this->budget, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Accessor pour les frais de dossier formatés
+     */
+    public function getFraisDossierFormateAttribute()
+    {
+        if (!$this->frais_dossier) {
+            return '-';
+        }
+
+        return number_format($this->frais_dossier, 2, ',', ' ') . ' €';
+    }
+
+    /**
+     * Vérifier si le dossier est en retard
+     */
+    public function getEnRetardAttribute()
+    {
+        if ($this->statut == 'cloture' || $this->statut == 'archive') {
+            return false;
+        }
+
+        if (!$this->date_cloture_prevue) {
+            return false;
+        }
+
+        return Carbon::parse($this->date_cloture_prevue)->isPast();
+    }
+
+    /**
+     * Scope pour les dossiers en cours
+     */
+    public function scopeEnCours($query)
+    {
+        return $query->whereIn('statut', ['ouvert', 'en_cours']);
+    }
+
+    /**
+     * Scope pour les dossiers clôturés
+     */
+    public function scopeCloture($query)
+    {
+        return $query->where('statut', 'cloture');
+    }
+
+    /**
+     * Scope pour les dossiers en retard
+     */
+    public function scopeEnRetard($query)
+    {
+        return $query->whereIn('statut', ['ouvert', 'en_cours'])
+            ->whereDate('date_cloture_prevue', '<', now());
+    }
+
+    /**
+     * Scope par type de dossier
+     */
+    public function scopeParType($query, $type)
+    {
+        return $query->where('type_dossier', $type);
+    }
+
+    /**
+     * Scope par client
+     */
+    public function scopeParClient($query, $clientId)
+    {
+        return $query->where('client_id', $clientId);
+    }
+
+    /**
+     * Recherche par nom, référence ou description
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function($q) use ($search) {
+            $q->where('nom', 'LIKE', "%{$search}%")
+              ->orWhere('reference', 'LIKE', "%{$search}%")
+              ->orWhere('description', 'LIKE', "%{$search}%");
+        });
     }
 }

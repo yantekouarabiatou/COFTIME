@@ -17,18 +17,13 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
         $this->call([
+            RolePermissionSeeder::class,
             PosteSeeder::class,
-            RolesAndPermissionsSeeder::class,
             UserSeeder::class,
-            CompanySettingSeeder::class,
+            ClientSeeder::class,
+            DossierSeeder::class,
         ]);
 
-        // Create a test user compatible with our users table (nom/prenom/username)
-        //User::factory()->create([
-          //  'nom' => 'Test',
-          //  'prenom' => 'User',
-          //  'username' => 'testuser',
-          //  'email' => 'test@example.com',
-        //]);
+        
     }
 }

@@ -13,8 +13,42 @@ return new class extends Migration
     {
         Schema::create('dossiers', function (Blueprint $table) {
             $table->id();
+
+            $table->string('reference')->unique()->nullable();
             $table->string('nom');
-            $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+
+            $table->enum('type_dossier', [
+                'audit',
+                'conseil',
+                'formation',
+                'expertise',
+                'autre'
+            ])->default('audit');
+
+            $table->text('description')->nullable();
+
+            $table->date('date_ouverture');
+            $table->date('date_cloture_prevue')->nullable();
+            $table->date('date_cloture_reelle')->nullable();
+
+            $table->enum('statut', [
+                'ouvert',
+                'en_cours',
+                'suspendu',
+                'cloture',
+                'archive'
+            ])->default('ouvert');
+
+            $table->decimal('budget', 12, 2)->nullable();
+            $table->decimal('frais_dossier', 12, 2)->nullable();
+
+            $table->string('document')->nullable();
+            $table->text('notes')->nullable();
+
+            $table->foreignId('client_id')
+                  ->constrained()
+                  ->cascadeOnDelete();
+
             $table->timestamps();
         });
     }

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\TimeEntry;
+use App\Observers\TimeEntryObserver;
 use App\Observers\UniversalModelObserver;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
@@ -13,6 +15,25 @@ class AppServiceProvider extends ServiceProvider
 {
     public function boot()
     {
+
+        // Pour les messages flash SweetAlert
+        if (session('success')) {
+            alert()->success('Succès !', session('success'));
+        }
+
+        if (session('error')) {
+            alert()->error('Erreur !', session('error'));
+        }
+
+        if (session('warning')) {
+            alert()->warning('Attention !', session('warning'));
+        }
+
+        if (session('info')) {
+            alert()->info('Information', session('info'));
+        }
+
+        TimeEntry::observe(TimeEntryObserver::class);
 
         Gate::before(function ($user, $ability) {
 

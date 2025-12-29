@@ -27,32 +27,22 @@ class PosteSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+
             [
-                'intitule' => 'Gestionnaire de Plaintes',
-                'description' => 'Responsable de la gestion et du suivi des plaintes',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'intitule' => 'Agent de Traitement',
+                'intitule' => 'Consultant',
                 'description' => 'Agent chargé du traitement des plaintes',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+
             [
-                'intitule' => 'Employé',
-                'description' => 'Employé standard de l\'entreprise',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'intitule' => 'Chargé de Clientèle',
+                'intitule' => 'Développeur',
                 'description' => 'Responsable des relations clients',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'intitule' => 'Technicien',
+                'intitule' => 'Manager',
                 'description' => 'Technicien spécialisé',
                 'created_at' => now(),
                 'updated_at' => now(),

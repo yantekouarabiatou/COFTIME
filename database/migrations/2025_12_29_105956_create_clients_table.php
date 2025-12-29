@@ -13,8 +13,27 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
+
             $table->string('nom');
             $table->string('email')->nullable();
+
+            $table->string('siege_social')->nullable();
+            $table->text('adresse')->nullable();
+            $table->string('telephone')->nullable();
+            $table->string('contact_principal')->nullable();
+            $table->string('secteur_activite')->nullable();
+
+            $table->string('numero_siret', 14)->nullable()->unique();
+            $table->string('code_naf', 10)->nullable();
+
+            $table->string('logo')->nullable();
+            $table->string('site_web')->nullable();
+
+            $table->text('notes')->nullable();
+
+            $table->enum('statut', ['actif', 'inactif', 'prospect'])
+                  ->default('prospect');
+
             $table->timestamps();
         });
     }
