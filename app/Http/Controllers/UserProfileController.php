@@ -145,7 +145,7 @@ class UserProfileController extends Controller
 
         try {
             $user = Auth::user();
-            
+
             // Mettre à jour le mot de passe
             $user->update([
                 'password' => Hash::make($request->new_password)
@@ -202,18 +202,18 @@ class UserProfileController extends Controller
             ];
 
             /** 2️⃣ username */
-            $data['username'] = $request->filled('username') 
-                ? $request->username 
+            $data['username'] = $request->filled('username')
+                ? $request->username
                 : $user->username;
 
             /** 3️⃣ email */
-            $data['email'] = $request->filled('email') 
-                ? $request->email 
+            $data['email'] = $request->filled('email')
+                ? $request->email
                 : $user->email;
 
             /** 4️⃣ is_active */
-            $data['is_active'] = $request->has('is_active') 
-                ? $request->is_active 
+            $data['is_active'] = $request->has('is_active')
+                ? $request->is_active
                 : $user->is_active;
 
             /** 5️⃣ Photo */
@@ -244,7 +244,7 @@ class UserProfileController extends Controller
         }
     }
 
-   
+
 
     /**
      * Désactiver un utilisateur

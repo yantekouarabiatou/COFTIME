@@ -30,20 +30,6 @@ class AppServiceProvider extends ServiceProvider
             }
         });
         // Enregistrez l'observateur pour les modèles spécifiques
-        $models = [
-            \App\Models\Plainte::class,
-            \App\Models\Interet::class,
-            \App\Models\ClientAudit::class,
-            \App\Models\CadeauInvitation::class,
-            \App\Models\Independance::class,
-            \App\Models\Assignation::class,
-            \App\Models\Poste::class,
-
-        ];
-
-        foreach ($models as $model) {
-            $model::observe(UniversalModelObserver::class);
-        }
 
 
         Blade::directive('adjustBrightness', function ($expression) {

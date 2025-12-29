@@ -6,16 +6,13 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable, HasRoles;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'nom',
         'prenom',
@@ -27,35 +24,32 @@ class User extends Authenticatable
         'created_by',
         'telephone',
         'role_id',
-        'is_active',
+        'is_active', // tu l'as dans $fillable mais pas dans la migration → à ajouter si tu veux l'utiliser
     ];
 
-
-    /**
-     * The attributes that should be hidden for serialization.
-     */
     protected $hidden = [
         'password',
         'remember_token',
+        'otp_code',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'otp_expires_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
-    // Accessor pour avoir le nom complet (facultatif mais pratique)
+    // Accessor nom complet
     public function getFullNameAttribute(): string
     {
-        return "{$this->prenom} {$this->nom}";
+        return trim("{$this->prenom} {$this->nom}");
     }
 
+    // Relations
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -71,37 +65,24 @@ class User extends Authenticatable
         return $this->belongsTo(Poste::class);
     }
 
-    public function role()
+        public function legacyRole()
     {
-        return $this->belongsTo(Role::class);
+        return $this->belongsTo(Role::class, 'role_id');
     }
 
-    public function plaintes()
+    // Relations avec tes autres modèles existants
+    public function dailyEntries()
     {
-        return $this->hasMany(Plainte::class, 'user_id');
+        return $this->hasMany(DailyEntry::class);
     }
 
-    public function clientAudits()
+    public function timeEntries()
     {
-        return $this->hasMany(ClientAudit::class, 'user_id');
+        return $this->hasMany(TimeEntry::class);
     }
 
-    public function cadeauInvitations()
+    public function conges()
     {
-        return $this->hasMany(CadeauInvitation::class, 'user_id');
+        return $this->hasMany(Conge::class);
     }
-    public function cadeauInvitationRespo()
-    {
-        return $this->hasMany(CadeauInvitation::class, 'responsable_id');
-    }
-    public function interets()
-    {
-        return $this->hasMany(Interet::class, 'user_id');
-    }
-
-    public function independances()
-    {
-        return $this->hasMany(Independance::class, 'user_id');
-    }
-
 }

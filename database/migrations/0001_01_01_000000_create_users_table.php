@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('poste_id')->nullable()->constrained('postes')->onDelete('set null');
             $table->foreignId('created_by')->nullable()->constrained('users')->onDelete('set null');
             $table->string('telephone')->nullable();
-            $table->foreignId('role_id')->nullable()->constrained('roles')->onDelete('set null');
+            //$table->foreignId('role_id')->nullable()->constrained('roles')->onDelete('set null');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('otp_code')->nullable();
             $table->timestamp('otp_expires_at')->nullable();
@@ -54,6 +54,6 @@ return new class extends Migration
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
-        
+
     }
 };
