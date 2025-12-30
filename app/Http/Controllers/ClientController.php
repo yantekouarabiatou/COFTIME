@@ -26,7 +26,8 @@ class ClientController extends Controller
      */
     public function create()
     {
-        return view('pages.clients.create');
+        $client= Client::all();
+        return view('pages.clients.create', compact('client'));
     }
 
     /**
@@ -91,7 +92,7 @@ class ClientController extends Controller
     public function show(Client $client)
     {
         $client->load('dossiers');
-        return view('clients.show', compact('client'));
+        return view('pages.clients.show', compact('client'));
     }
 
     /**

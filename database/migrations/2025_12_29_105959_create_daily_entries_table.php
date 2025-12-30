@@ -17,9 +17,14 @@ return new class extends Migration
             $table->date('jour');
             $table->decimal('heures_theoriques', 4, 2)->default(0);
             $table->decimal('heures_totales', 5, 2)->default(0);
+            $table->decimal('heures_reelles', 8, 2)->default(0);
             $table->boolean('is_weekend')->default(false);
             $table->boolean('is_holiday')->default(false);
             $table->text('commentaire')->nullable();
+            $table->string('statut')->default('soumis');
+            $table->unsignedBigInteger('valide_par')->nullable();
+            $table->timestamp('valide_le')->nullable();
+            $table->text('motif_refus')->nullable();
             $table->timestamps();
             $table->unique(['user_id', 'jour']);
         });

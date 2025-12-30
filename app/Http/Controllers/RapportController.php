@@ -21,6 +21,9 @@ class RapportController extends Controller
 
         $users = User::orderBy('nom')->get();
 
+        // Initialiser $selectedUser à null par défaut
+        $selectedUser = null;
+
         if ($userId) {
             $selectedUser = User::findOrFail($userId);
             $dailyEntries = DailyEntry::with('timeEntries.dossier.client')
@@ -28,7 +31,7 @@ class RapportController extends Controller
                 ->whereBetween('jour', [$start, $end])
                 ->orderBy('jour')
                 ->get();
-            $title = "Rapport mensuel - {$selectedUser->full_name} - {$date->translatedFormat('F Y')}";
+            $title = "Rapport mensuel - {$selectedUser->nom} - {$date->translatedFormat('F Y')}";
         } else {
             $dailyEntries = DailyEntry::with('user', 'timeEntries.dossier.client')
                 ->whereBetween('jour', [$start, $end])
