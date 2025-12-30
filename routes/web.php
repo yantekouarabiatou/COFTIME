@@ -17,6 +17,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\DailyEntryController;
 use App\Http\Controllers\DossierController;
+use App\Http\Controllers\CongeController;
 use App\Http\Controllers\InteretController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RapportController;
@@ -132,6 +133,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('roles', RoleController::class)->except(['show']);
         Route::resource('roles', RoleController::class);
     });
+
+    Route::resource('conges', CongeController::class);
 
     Route::get('/statistics/annual', [StatisticsController::class, 'annual'])->name('statistics.annual');
     Route::get('/statistics/export', [StatisticsController::class, 'export'])->name('statistics.export');
