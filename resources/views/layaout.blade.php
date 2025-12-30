@@ -351,7 +351,7 @@
             auth()->user()->can('créer des entrées journalières') ||
             auth()->user()->can('voir tous les temps')
         )
-            <li class="menu-header">GESTION DES REGISTRES</li>
+            <li class="menu-header">GESTION DU TEMPS</li>
 
             @can(['accéder au tableau de bord admin', 'accéder au tableau de bord utilisateur'])
                 <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
@@ -389,14 +389,14 @@
                         @can('créer des entrées journalières')
                             <li class="{{ request()->routeIs('daily-entries.create') ? 'active' : '' }}">
                                 <a class="nav-link" href="{{ route('daily-entries.create') }}">
-                                    <i class="fas fa-plus-circle"></i> Saisir une feuille de temps
+                                    <i class="fas fa-plus-circle"></i> Saisir une tache
                                 </a>
                             </li>
                         @endcan
                         @can(['voir les entrées journalières', 'voir tous les temps'])
                             <li class="{{ request()->routeIs('daily-entries.index') ? 'active' : '' }}">
                                 <a class="nav-link" href="{{ route('daily-entries.index') }}">
-                                    <i class="fas fa-list-alt"></i> Liste des feuilles de temps
+                                    <i class="fas fa-list-alt"></i> Liste des taches
                                 </a>
                             </li>
                         @endcan

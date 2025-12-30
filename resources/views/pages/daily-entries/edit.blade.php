@@ -1,97 +1,108 @@
 @extends('layaout')
 
-@section('title', 'Nouvelle Feuille de Temps')
+@section('title', 'Modifier la Feuille de Temps')
 
 @section('content')
 <section class="section">
     <div class="section-header">
-        <h1><i class="fas fa-clock"></i> Nouvelle Feuille de Temps</h1>
+        <h1><i class="fas fa-clock"></i> Modifier la Feuille de Temps</h1>
         <div class="section-header-breadcrumb">
             <div class="breadcrumb-item active"><a href="{{ route('dashboard') }}">Dashboard</a></div>
             <div class="breadcrumb-item"><a href="{{ route('daily-entries.index') }}">Feuilles de Temps</a></div>
-            <div class="breadcrumb-item">Nouvelle</div>
+            <div class="breadcrumb-item"><a href="{{ route('daily-entries.show', $dailyEntry) }}">Détail</a></div>
+            <div class="breadcrumb-item">Modifier</div>
         </div>
     </div>
 
     <div class="section-body">
         <div class="card card-primary">
             <div class="card-header">
-                <h4>Saisie du {{ now()->format('d/m/Y') }}</h4>
+                <h4>Modification du {{ \Carbon\Carbon::parse($dailyEntry->jour)->format('d/m/Y') }}</h4>
             </div>
 
             <div class="card-body">
-                <form action="{{ route('daily-entries.store') }}" method="POST" id="daily-form">
+                <form action="{{ route('daily-entries.update', $dailyEntry) }}" method="POST" id="daily-form">
                     @csrf
+                    @method('PUT')
 
                     <div class="row">
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Collaborateur</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" value="{{ auth()->user()->prenom }} - {{ auth()->user()->nom }} ({{ auth()->user()->poste->intitule ?? '-' }})" readonly>
-                                    <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+                                    <input type="text" class="form-control" value="{{ $dailyEntry->user->prenom }} - {{ $dailyEntry->user->nom }} ({{ $dailyEntry->user->poste->intitule ?? '-' }})" readonly>
+                                    <input type="hidden" name="user_id" value="{{ $dailyEntry->user_id }}">
                                 </div>
-                                <small class="text-muted">Vous êtes automatiquement sélectionné en tant qu'utilisateur connecté</small>
                             </div>
                         </div>
 
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Date <span class="text-danger">*</span></label>
-                                <input type="date" name="jour" class="form-control" value="{{ old('jour', now()->format('Y-m-d')) }}" required>
+                                <input type="date" name="jour" class="form-control" value="{{ $dailyEntry->jour->format('Y-m-d') }}" required>
                             </div>
                         </div>
 
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label>Heures théoriques <span class="text-danger">*</span></label>
-                                <input type="number" step="0.25" min="0" max="24" name="heures_theoriques" class="form-control" value="{{ old('heures_theoriques', 8) }}" required>
-                                <small class="text-muted">Durée théorique de travail pour cette journée</small>
+                                <input type="number" step="0.25" min="0" max="24" name="heures_theoriques"
+                                       class="form-control" value="{{ $dailyEntry->heures_theoriques }}" required>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label>Commentaire général</label>
-                        <textarea name="commentaire" class="form-control" rows="2" placeholder="Ex: Réunion clientèle, télétravail, formation interne...">{{ old('commentaire') }}</textarea>
+                        <textarea name="commentaire" class="form-control" rows="2">{{ $dailyEntry->commentaire }}</textarea>
                     </div>
 
                     <hr>
 
-                    <!-- Titre + bouton global sur la même ligne -->
+                    <!-- Titre + bouton global nouveau dossier -->
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <h5 class="mb-0"><i class="fas fa-tasks"></i> Activités de la journée</h5>
-                        <button type="button" class="btn btn-outline-primary btn-new-dossier-global" title="Nouveau dossier">
+                        <button type="button" class="btn btn-outline-primary btn-new-dossier-global">
                             <i class="fas fa-plus"></i> Nouveau dossier
                         </button>
                     </div>
 
                     <div id="time-entries-container">
-                        <!-- Première ligne visible par défaut (sans bouton +) -->
+                        @foreach($dailyEntry->timeEntries as $index => $entry)
                         <div class="time-entry-row row mb-3">
                             <div class="col-md-3">
-                                <select name="time_entries[0][dossier_id]" class="form-control select2 dossier-select" required>
+                                <select name="time_entries[{{ $index }}][dossier_id]" class="form-control select2 dossier-select" required>
                                     <option value="">Choisir un dossier...</option>
                                     @foreach($dossiers as $dossier)
                                         <option value="{{ $dossier->id }}"
                                             data-client="{{ $dossier->client->nom ?? 'Sans client' }}"
-                                            data-reference="{{ $dossier->reference ?? '' }}">
+                                            data-reference="{{ $dossier->reference ?? '' }}"
+                                            {{ $entry->dossier_id == $dossier->id ? 'selected' : '' }}>
                                             {{ $dossier->nom }} - {{ $dossier->client->nom ?? 'Sans client' }}
                                         </option>
                                     @endforeach
                                 </select>
+                                <input type="hidden" name="time_entries[{{ $index }}][id]" value="{{ $entry->id }}">
                             </div>
                             <div class="col-md-2">
-                                <input type="time" name="time_entries[0][heure_debut]" class="form-control heure-debut" value="09:00" required>
-                            </div>
+                            <input type="time" name="time_entries[{{ $index }}][heure_debut]"
+                                class="form-control heure-debut"
+                                value="{{ $entry->heure_debut ? $entry->heure_debut->format('H:i') : '' }}"
+                                required>
+                        </div>
                             <div class="col-md-2">
-                                <input type="time" name="time_entries[0][heure_fin]" class="form-control heure-fin" value="12:00" required>
+                                <input type="time" name="time_entries[{{ $index }}][heure_fin]"
+                                    class="form-control heure-fin"
+                                    value="{{ $entry->heure_fin ? $entry->heure_fin->format('H:i') : '' }}"
+                                    required>
                             </div>
                             <div class="col-md-1">
-                                <input type="number" step="0.25" min="0.25" name="time_entries[0][heures_reelles]" class="form-control heures-input" value="3" required>
+                                <input type="number" step="0.25" min="0.25" name="time_entries[{{ $index }}][heures_reelles]"
+                                       class="form-control heures-input" value="{{ $entry->heures_reelles }}" required>
                             </div>
                             <div class="col-md-3">
-                                <input type="text" name="time_entries[0][travaux]" class="form-control travaux-input" placeholder="Travaux réalisés">
+                                <input type="text" name="time_entries[{{ $index }}][travaux]"
+                                       class="form-control travaux-input" value="{{ $entry->travaux }}" placeholder="Travaux réalisés">
                             </div>
                             <div class="col-md-1 text-center">
                                 <button type="button" class="btn btn-danger btn-sm remove-row" title="Supprimer">
@@ -99,6 +110,7 @@
                                 </button>
                             </div>
                         </div>
+                        @endforeach
                     </div>
 
                     <div class="mb-4 text-center">
@@ -107,7 +119,7 @@
                         </button>
                     </div>
 
-                    <!-- Récapitulatif visuel -->
+                    <!-- Récapitulatif -->
                     <div class="card mt-4">
                         <div class="card-body">
                             <h6>Récapitulatif des heures</h6>
@@ -129,11 +141,11 @@
                     </div>
 
                     <div class="text-right mt-4">
-                        <a href="{{ route('daily-entries.index') }}" class="btn btn-secondary btn-lg mr-3">
+                        <a href="{{ route('daily-entries.show', $dailyEntry) }}" class="btn btn-secondary btn-lg mr-3">
                             <i class="fas fa-times"></i> Annuler
                         </a>
                         <button type="submit" class="btn btn-primary btn-lg px-5">
-                            <i class="fas fa-save"></i> Enregistrer la feuille
+                            <i class="fas fa-save"></i> Enregistrer les modifications
                         </button>
                     </div>
                 </form>
@@ -142,34 +154,32 @@
     </div>
 </section>
 
-<!-- Modal pour nouveau dossier -->
+<!-- Modal nouveau dossier (identique à create) -->
 <div class="modal fade" id="newDossierModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="fas fa-folder-plus"></i> Nouveau Dossier</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
                 <form id="new-dossier-form">
                     @csrf
+                    <!-- Tous les champs identiques à ceux de la vue create -->
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Nom du dossier <span class="text-danger">*</span></label>
-                                <input type="text" name="nom" class="form-control" required placeholder="Ex: Audit financier 2024">
+                                <input type="text" name="nom" class="form-control" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Référence</label>
-                                <input type="text" name="reference" class="form-control" placeholder="Ex: REF-2025-001">
+                                <input type="text" name="reference" class="form-control">
                             </div>
                         </div>
                     </div>
-
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
@@ -274,17 +284,8 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('assets/bundles/select2/dist/css/select2.min.css') }}">
 <style>
-    .progress-text {
-        position: absolute;
-        width: 100%;
-        text-align: center;
-        font-weight: bold;
-        color: #fff;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    }
-    .select2-container {
-        width: 100% !important;
-    }
+    .progress-text { position: absolute; width: 100%; text-align: center; font-weight: bold; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+    .select2-container { width: 100% !important; }
 </style>
 @endpush
 
@@ -298,24 +299,17 @@ $(document).ready(function() {
         placeholder: "Choisir un dossier..."
     });
 
-    let rowIndex = 1;
-    let currentDossierSelect = null;
+    let rowIndex = {{ $dailyEntry->timeEntries->count() }};
+    const dossierOptionsHTML = $('#time-entries-container .dossier-select:first').html() || '<option value="">Choisir un dossier...</option>';
 
-    // Stocker les options des dossiers une seule fois
-    const dossierOptionsHTML = $('#time-entries-container .dossier-select:first').html();
-
-    // Ouvrir le modal uniquement via le bouton global
     $('.btn-new-dossier-global').on('click', function() {
-        currentDossierSelect = null;
         $('#newDossierModal').modal('show');
     });
 
-    // Création du dossier via AJAX
     $('#save-new-dossier').on('click', function() {
         let form = $('#new-dossier-form');
-        let submitBtn = $(this);
-
-        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Création...');
+        let btn = $(this);
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Création...');
 
         let formData = new FormData(form[0]);
 
@@ -326,38 +320,24 @@ $(document).ready(function() {
             processData: false,
             contentType: false,
             success: function(response) {
-                // Créer la nouvelle option
-                let newOption = `<option value="${response.dossier.id}"
-                    data-client="${response.client.nom}"
-                    data-reference="${response.dossier.reference || ''}">
+                let newOption = `<option value="${response.dossier.id}" selected>
                     ${response.dossier.nom} - ${response.client.nom}
                 </option>`;
-
-                // Ajouter à tous les selects existants
                 $('.dossier-select').append(newOption).trigger('change');
-
-                // Mettre à jour le HTML des options pour les futures lignes
-                dossierOptionsHTML = $('.dossier-select:first').html();
-
                 $('#newDossierModal').modal('hide');
                 form[0].reset();
-                $('.select2').val(null).trigger('change');
-
-                Swal.fire('Succès', 'Dossier créé avec succès!', 'success');
+                Swal.fire('Succès', 'Dossier créé !', 'success');
             },
             error: function(xhr) {
-                let errors = xhr.responseJSON?.errors;
-                let msg = 'Une erreur est survenue.';
-                if (errors) msg = Object.values(errors).flat().join('<br>');
+                let msg = xhr.responseJSON?.errors ? Object.values(xhr.responseJSON.errors).flat().join('<br>') : 'Erreur';
                 Swal.fire('Erreur', msg, 'error');
             },
             complete: function() {
-                submitBtn.prop('disabled', false).html('<i class="fas fa-save"></i> Créer le dossier');
+                btn.prop('disabled', false).html('<i class="fas fa-save"></i> Créer le dossier');
             }
         });
     });
 
-    // Ajouter une nouvelle ligne
     $('#add-row').on('click', function() {
         let newRow = `
         <div class="time-entry-row row mb-3">
@@ -366,99 +346,65 @@ $(document).ready(function() {
                     ${dossierOptionsHTML}
                 </select>
             </div>
-            <div class="col-md-2">
-                <input type="time" name="time_entries[${rowIndex}][heure_debut]" class="form-control heure-debut" required>
-            </div>
-            <div class="col-md-2">
-                <input type="time" name="time_entries[${rowIndex}][heure_fin]" class="form-control heure-fin" required>
-            </div>
-            <div class="col-md-1">
-                <input type="number" step="0.25" min="0.25" name="time_entries[${rowIndex}][heures_reelles]" class="form-control heures-input" placeholder="h" required>
-            </div>
-            <div class="col-md-3">
-                <input type="text" name="time_entries[${rowIndex}][travaux]" class="form-control travaux-input" placeholder="Travaux réalisés">
-            </div>
+            <div class="col-md-2"><input type="time" name="time_entries[${rowIndex}][heure_debut]" class="form-control heure-debut" required></div>
+            <div class="col-md-2"><input type="time" name="time_entries[${rowIndex}][heure_fin]" class="form-control heure-fin" required></div>
+            <div class="col-md-1"><input type="number" step="0.25" min="0.25" name="time_entries[${rowIndex}][heures_reelles]" class="form-control heures-input" required></div>
+            <div class="col-md-3"><input type="text" name="time_entries[${rowIndex}][travaux]" class="form-control travaux-input" placeholder="Travaux réalisés"></div>
             <div class="col-md-1 text-center">
-                <button type="button" class="btn btn-danger btn-sm remove-row" title="Supprimer">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <button type="button" class="btn btn-danger btn-sm remove-row"><i class="fas fa-trash"></i></button>
             </div>
         </div>`;
-
         $('#time-entries-container').append(newRow);
-
-        // Initialiser Select2 sur la nouvelle ligne
-        $('#time-entries-container .dossier-select').last().select2({
-            width: '100%',
-            placeholder: "Choisir un dossier..."
-        });
-
-        // Événements calcul heures
-        $('#time-entries-container .heure-debut, #time-entries-container .heure-fin').last().on('change', function() {
-            calculateHours($(this).closest('.time-entry-row'));
-        });
-
+        $('.dossier-select').last().select2({ width: '100%', placeholder: "Choisir un dossier..." });
         rowIndex++;
         updateTotal();
     });
 
-    // Suppression ligne
     $(document).on('click', '.remove-row', function() {
         if ($('.time-entry-row').length > 1) {
             $(this).closest('.time-entry-row').fadeOut(300, function() { $(this).remove(); updateTotal(); });
         } else {
-            Swal.fire('Attention', 'Vous devez avoir au moins une activité', 'warning');
+            Swal.fire('Attention', 'Au moins une activité requise', 'warning');
         }
     });
 
-    // Calcul heures auto
     $(document).on('change', '.heure-debut, .heure-fin', function() {
-        calculateHours($(this).closest('.time-entry-row'));
-    });
-
-    function calculateHours(row) {
+        let row = $(this).closest('.time-entry-row');
         let start = row.find('.heure-debut').val();
         let end = row.find('.heure-fin').val();
         if (start && end) {
-            let startTime = new Date('1970-01-01T' + start + ':00');
-            let endTime = new Date('1970-01-01T' + end + ':00');
-            if (endTime < startTime) endTime.setDate(endTime.getDate() + 1);
-            let diff = (endTime - startTime) / (1000 * 60 * 60);
+            let s = new Date('1970-01-01T' + start + ':00');
+            let e = new Date('1970-01-01T' + end + ':00');
+            if (e < s) e.setDate(e.getDate() + 1);
+            let diff = (e - s) / (1000 * 60 * 60);
             diff = Math.round(diff * 4) / 4;
             row.find('.heures-input').val(diff.toFixed(2));
             updateTotal();
         }
-    }
+    });
 
     function updateTotal() {
         let total = 0;
         $('.heures-input').each(function() { total += parseFloat($(this).val()) || 0; });
         let theoriques = parseFloat($('input[name="heures_theoriques"]').val()) || 8;
-
         $('#total-heures span').text(total.toFixed(2));
-        let percentage = (total / theoriques) * 100;
-        let barPercentage = Math.min(percentage, 100);
-
-        $('#progress-bar').css('width', barPercentage + '%');
+        let perc = (total / theoriques) * 100;
+        $('#progress-bar').css('width', Math.min(perc, 100) + '%');
         $('#progress-bar .progress-text').text(total.toFixed(2) + 'h / ' + theoriques + 'h');
-
-        $('#progress-over').css('width', percentage > 100 ? (percentage - 100) + '%' : '0%');
-        $('#progress-under').css('width', percentage <= 100 ? (100 - percentage) + '%' : '0%');
+        $('#progress-over').css('width', perc > 100 ? (perc - 100) + '%' : '0%');
+        $('#progress-under').css('width', perc <= 100 ? (100 - perc) + '%' : '0%');
     }
 
-    // Validation formulaire
     $('#daily-form').on('submit', function(e) {
         let total = 0;
         $('.heures-input').each(function() { total += parseFloat($(this).val()) || 0; });
         if (total === 0) {
             e.preventDefault();
-            Swal.fire('Erreur', 'Vous devez saisir au moins une activité', 'error');
-            return false;
+            Swal.fire('Erreur', 'Au moins une activité requise', 'error');
         }
         if ($('.dossier-select').filter(function() { return !$(this).val(); }).length > 0) {
             e.preventDefault();
-            Swal.fire('Erreur', 'Veuillez sélectionner un dossier pour chaque activité', 'error');
-            return false;
+            Swal.fire('Erreur', 'Sélectionnez un dossier pour chaque activité', 'error');
         }
     });
 

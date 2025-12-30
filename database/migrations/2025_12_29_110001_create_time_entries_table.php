@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('time_entries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('daily_entry_id')->constrained()->onDelete('cascade');
-            $table->decimal('heures', 4, 2);
+            $table->decimal('heures_reelles', 4, 2);
             $table->text('travaux')->nullable();
             $table->time('heure_debut');
             $table->time('heure_fin');

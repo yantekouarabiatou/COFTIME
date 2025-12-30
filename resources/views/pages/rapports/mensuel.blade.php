@@ -19,7 +19,7 @@
                                     <option value="">Tous les employés</option>
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>
-                                            {{ $user->full_name }}
+                                            {{ $user->nom }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -41,7 +41,7 @@
                 @else
                     @foreach($dailyEntries as $userId => $entries)
                         @php $user = $entries->first()->user; @endphp
-                        @include('rapports.partials.single-user', ['entries' => $entries, 'user' => $user])
+                        @include('pages.rapports.partials.single-user', ['entries' => $entries, 'user' => $user])
                     @endforeach
                 @endif
             </div>

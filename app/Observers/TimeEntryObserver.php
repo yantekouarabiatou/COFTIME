@@ -24,7 +24,7 @@ class TimeEntryObserver
     protected function updateDailyTotal(TimeEntry $timeEntry)
     {
         $dailyEntry = $timeEntry->dailyEntry;
-        $total = $dailyEntry->timeEntries()->sum('heures');
+        $total = $dailyEntry->timeEntries()->sum('heures_reelles');
 
         $dailyEntry->update(['heures_totales' => $total]);
     }

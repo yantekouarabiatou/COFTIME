@@ -6,254 +6,146 @@ use App\Models\Dossier;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 
 class DossierController extends Controller
 {
-    /**
-     * Afficher la liste des dossiers
-     */
     public function index(Request $request)
     {
         $query = Dossier::with('client')->latest();
 
-        // Filtre par client si spécifié
-        if ($request->has('client_id') && $request->client_id) {
-            $query->where('client_id', $request->client_id);
+        // Recherche
+        if ($request->has('search')) {
+            $query->search($request->search);
         }
 
-        $dossiers = $query->get();
-        $clients = Client::orderBy('nom')->get();
+        // Filtres
+        if ($request->has('statut')) {
+            if ($request->statut == 'en_retard') {
+                $query->enRetard();
+            } else {
+                $query->where('statut', $request->statut);
+            }
+        }
 
-        return view('pages.dossiers.index', compact('dossiers', 'clients'));
+        if ($request->has('type')) {
+            $query->parType($request->type);
+        }
+
+        $dossiers = $query->paginate(20);
+
+        // Statistiques pour la vue
+        $totalDossiers = Dossier::count();
+        $dossiersEnCours = Dossier::enCours()->count();
+        $dossiersEnRetard = Dossier::enRetard()->count();
+        $dossiersClotures = Dossier::cloture()->count();
+
+        return view('pages.dossiers.index', compact(
+            'dossiers',
+            'totalDossiers',
+            'dossiersEnCours',
+            'dossiersEnRetard',
+            'dossiersClotures'
+        ));
     }
 
-    /**
-     * Afficher le formulaire de création
-     */
-    public function create(Request $request)
+    public function create()
     {
-        $clients = Client::orderBy('nom')->get();
-        $selectedClient = $request->client_id ? Client::find($request->client_id) : null;
-
-        return view('pages.dossiers.create', compact('clients', 'selectedClient'));
+        $clients = Client::whereIn('statut', ['actif', 'prospect'])->get();
+        return view('pages.dossiers.create', compact('clients'));
     }
 
-    /**
-     * Enregistrer un nouveau dossier
-     */
     public function store(Request $request)
     {
-        // Validation
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'nom' => 'required|string|max:255',
-            'reference' => 'nullable|string|max:100|unique:dossiers,reference',
+            'reference' => 'nullable|string|max:50|unique:dossiers,reference',
             'type_dossier' => 'required|in:audit,conseil,formation,expertise,autre',
+            'statut' => 'required|in:ouvert,en_cours,suspendu,cloture,archive',
             'description' => 'nullable|string',
             'date_ouverture' => 'required|date',
             'date_cloture_prevue' => 'nullable|date|after_or_equal:date_ouverture',
-            'statut' => 'required|in:ouvert,en_cours,suspendu,cloture,archive',
+            'date_cloture_reelle' => 'nullable|date|after_or_equal:date_ouverture',
             'budget' => 'nullable|numeric|min:0',
             'frais_dossier' => 'nullable|numeric|min:0',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:10240',
+            'document' => 'nullable|file|max:5120|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
             'notes' => 'nullable|string',
         ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput()
-                ->with('error', 'Veuillez corriger les erreurs ci-dessous.');
-        }
-
-        // Traitement du document
-        $documentPath = null;
+        // Gestion du document
         if ($request->hasFile('document')) {
-            $documentPath = $request->file('document')->store('dossiers/documents', 'public');
+            $validated['document'] = $request->file('document')->store('dossiers/documents', 'public');
         }
 
-        // Création du dossier
-        $dossier = Dossier::create([
-            'client_id' => $request->client_id,
-            'nom' => $request->nom,
-            'reference' => $request->reference ?? $this->generateReference(),
-            'type_dossier' => $request->type_dossier,
-            'description' => $request->description,
-            'date_ouverture' => $request->date_ouverture,
-            'date_cloture_prevue' => $request->date_cloture_prevue,
-            'date_cloture_reelle' => null,
-            'statut' => $request->statut,
-            'budget' => $request->budget,
-            'frais_dossier' => $request->frais_dossier,
-            'document' => $documentPath,
-            'notes' => $request->notes,
-        ]);
+        $dossier = Dossier::create($validated);
 
-        return redirect()->route('dossiers.index')
-            ->with('success', 'Dossier créé avec succès!');
+        return redirect()->route('dossiers.show', $dossier)
+            ->with('success', 'Dossier créé avec succès.');
     }
 
-    /**
-     * Afficher les détails d'un dossier
-     */
     public function show(Dossier $dossier)
     {
-        $dossier->load('client');
         return view('pages.dossiers.show', compact('dossier'));
     }
 
-    /**
-     * Afficher le formulaire d'édition
-     */
     public function edit(Dossier $dossier)
     {
-        $clients = Client::orderBy('nom')->get();
+        $clients = Client::whereIn('statut', ['actif', 'prospect'])->get();
         return view('pages.dossiers.edit', compact('dossier', 'clients'));
     }
 
-    /**
-     * Mettre à jour un dossier
-     */
     public function update(Request $request, Dossier $dossier)
     {
-        // Validation avec règles uniques excluant le dossier actuel
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'client_id' => 'required|exists:clients,id',
             'nom' => 'required|string|max:255',
-            'reference' => 'nullable|string|max:100|unique:dossiers,reference,' . $dossier->id,
+            'reference' => 'required|string|max:50|unique:dossiers,reference,' . $dossier->id,
             'type_dossier' => 'required|in:audit,conseil,formation,expertise,autre',
+            'statut' => 'required|in:ouvert,en_cours,suspendu,cloture,archive',
             'description' => 'nullable|string',
             'date_ouverture' => 'required|date',
             'date_cloture_prevue' => 'nullable|date|after_or_equal:date_ouverture',
-            'statut' => 'required|in:ouvert,en_cours,suspendu,cloture,archive',
+            'date_cloture_reelle' => 'nullable|date|after_or_equal:date_ouverture',
             'budget' => 'nullable|numeric|min:0',
             'frais_dossier' => 'nullable|numeric|min:0',
-            'document' => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx|max:10240',
+            'document' => 'nullable|file|max:5120|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
             'notes' => 'nullable|string',
         ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput()
-                ->with('error', 'Veuillez corriger les erreurs ci-dessous.');
+        // Gestion de la suppression du document
+        if ($request->has('remove_document') && $dossier->document) {
+            Storage::disk('public')->delete($dossier->document);
+            $validated['document'] = null;
         }
 
-        // Traitement du document
+        // Gestion du nouveau document
         if ($request->hasFile('document')) {
             // Supprimer l'ancien document s'il existe
-            if ($dossier->document && Storage::disk('public')->exists($dossier->document)) {
+            if ($dossier->document) {
                 Storage::disk('public')->delete($dossier->document);
             }
-
-            $documentPath = $request->file('document')->store('dossiers/documents', 'public');
-            $dossier->document = $documentPath;
+            $validated['document'] = $request->file('document')->store('dossiers/documents', 'public');
+        } else {
+            // Conserver le document existant si aucun nouveau n'est fourni
+            $validated['document'] = $dossier->document;
         }
 
-        // Mise à jour automatique de la date de clôture si statut "cloture"
-        $dateClotureReelle = $dossier->date_cloture_reelle;
-        if ($request->statut == 'cloture' && $dossier->statut != 'cloture') {
-            $dateClotureReelle = now()->format('Y-m-d');
-        } elseif ($request->statut != 'cloture') {
-            $dateClotureReelle = null;
-        }
+        $dossier->update($validated);
 
-        // Mise à jour du dossier
-        $dossier->update([
-            'client_id' => $request->client_id,
-            'nom' => $request->nom,
-            'reference' => $request->reference ?? $dossier->reference,
-            'type_dossier' => $request->type_dossier,
-            'description' => $request->description,
-            'date_ouverture' => $request->date_ouverture,
-            'date_cloture_prevue' => $request->date_cloture_prevue,
-            'date_cloture_reelle' => $dateClotureReelle,
-            'statut' => $request->statut,
-            'budget' => $request->budget,
-            'frais_dossier' => $request->frais_dossier,
-            'notes' => $request->notes,
-        ]);
-
-        return redirect()->route('dossiers.index')
-            ->with('success', 'Dossier mis à jour avec succès!');
+        return redirect()->route('dossiers.show', $dossier)
+            ->with('success', 'Dossier mis à jour avec succès.');
     }
 
-    /**
-     * Supprimer un dossier
-     */
     public function destroy(Dossier $dossier)
     {
-        // Supprimer le document s'il existe
-        if ($dossier->document && Storage::disk('public')->exists($dossier->document)) {
+        // Supprimer le document associé s'il existe
+        if ($dossier->document) {
             Storage::disk('public')->delete($dossier->document);
         }
 
         $dossier->delete();
 
         return redirect()->route('dossiers.index')
-            ->with('success', 'Dossier supprimé avec succès!');
-    }
-
-    /**
-     * Télécharger le document
-     */
-    public function downloadDocument(Dossier $dossier)
-    {
-        if (!$dossier->document || !Storage::disk('public')->exists($dossier->document)) {
-            return redirect()->back()
-                ->with('error', 'Document non trouvé.');
-        }
-
-        return Storage::disk('public')->download($dossier->document,
-            'dossier-' . str_slug($dossier->nom) . '.' . pathinfo($dossier->document, PATHINFO_EXTENSION));
-    }
-
-    /**
-     * Générer une référence automatique
-     */
-    private function generateReference()
-    {
-        $year = date('Y');
-        $month = date('m');
-        $lastDossier = Dossier::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->orderBy('id', 'desc')
-            ->first();
-
-        $number = $lastDossier ? (int) substr($lastDossier->reference, -4) + 1 : 1;
-
-        return 'DOS-' . $year . $month . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
-    }
-
-    /**
-     * Changer le statut d'un dossier
-     */
-    public function changeStatus(Request $request, Dossier $dossier)
-    {
-        $request->validate([
-            'statut' => 'required|in:ouvert,en_cours,suspendu,cloture,archive'
-        ]);
-
-        $oldStatus = $dossier->statut;
-        $newStatus = $request->statut;
-
-        $dossier->statut = $newStatus;
-
-        // Mettre à jour la date de clôture réelle si nécessaire
-        if ($newStatus == 'cloture' && $oldStatus != 'cloture') {
-            $dossier->date_cloture_reelle = now()->format('Y-m-d');
-        } elseif ($newStatus != 'cloture') {
-            $dossier->date_cloture_reelle = null;
-        }
-
-        $dossier->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Statut mis à jour avec succès',
-            'statut' => $dossier->statut,
-            'statut_badge' => $dossier->statut_badge
-        ]);
+            ->with('success', 'Dossier supprimé avec succès.');
     }
 }

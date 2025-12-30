@@ -153,6 +153,23 @@ Route::middleware(['auth'])->group(function () {
         Route::get('daily-entries/month/{year}/{month}', [DailyEntryController::class, 'month'])
             ->name('daily-entries.month');
     });
+    // Routes pour les feuilles de temps
+    Route::prefix('daily-entries')->name('daily-entries.')->group(function () {
+        Route::get('/', [DailyEntryController::class, 'index'])->name('index');
+        Route::get('/create', [DailyEntryController::class, 'create'])->name('create');
+        Route::post('/', [DailyEntryController::class, 'store'])->name('store');
+        Route::get('/{dailyEntry}', [DailyEntryController::class, 'show'])->name('show');
+        Route::get('/{dailyEntry}/edit', [DailyEntryController::class, 'edit'])->name('edit');
+        Route::put('/{dailyEntry}', [DailyEntryController::class, 'update'])->name('update');
+        Route::delete('/{dailyEntry}', [DailyEntryController::class, 'destroy'])->name('destroy');
+
+        // Routes pour validation
+        Route::post('/{dailyEntry}/validate', [DailyEntryController::class, 'validateEntry'])->name('validate');
+        Route::post('/{dailyEntry}/reject', [DailyEntryController::class, 'rejectEntry'])->name('reject');
+
+        // Route AJAX pour création rapide de dossier
+        Route::post('/create-dossier-quick', [DailyEntryController::class, 'createDossierQuick'])->name('create-dossier-quick');
+    });
 
     Route::middleware('auth')
         ->prefix('profile')
@@ -169,9 +186,9 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/change-password', [UserProfileController::class, 'changePassword'])->name('change-password');
         });
 
-      Route::get('rapports/mensuel/{user?}/{year?}/{month?}', [RapportController::class, 'mensuel'])
-     ->name('rapports.mensuel');
-     Route::resource('dossiers', DossierController::class);
+    Route::get('rapports/mensuel/{user?}/{year?}/{month?}', [RapportController::class, 'mensuel'])
+        ->name('rapports.mensuel');
+    Route::resource('dossiers', DossierController::class);
     // Routes Clients
     Route::prefix('clients')->name('clients.')->group(function () {
         Route::get('/', [ClientController::class, 'index'])->name('index');
@@ -187,6 +204,9 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{client}/logo/delete', [ClientController::class, 'deleteLogo'])->name('logo.delete');
         Route::get('/export/pdf', [ClientController::class, 'exportPdf'])->name('export.pdf');
     });
+
+    Route::get('/daily-entries/export', [DailyEntryController::class, 'export'])
+        ->name('daily-entries.export');
 
     Route::prefix('settings')->group(function () {
         // Affiche les paramètres
