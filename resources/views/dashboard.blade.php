@@ -1,47 +1,45 @@
 @extends('layaout')
 
-@section('title','Tableau de bord')
+@section('title','Mon Tableau de bord')
 
 @section('content')
 <section class="section">
-    <!-- Cartes de statistiques avec animations -->
-    <div class="row">
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
-            <div class="card card-statistic-1 hover-card">
-                <div class="card-icon bg-primary">
-                    <i class="fas fa-briefcase"></i>
-                </div>
-                <div class="card-wrap">
-                    <div class="card-header">
-                        <h4>Clients</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h3 class="mb-0" id="total-clients">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </h3>
-                            <span class="badge badge-pill" id="clients-percent">--</span>
+    <!-- En-tête personnalisé -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card gradient-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-white">
+                            <h4 class="mb-1">Bonjour, <span id="user-name">{{ auth()->user()->prenom }} {{ auth()->user()->nom }}</span> 👋</h4>
+                            <p class="mb-0 text-white">Voici un aperçu de votre activité</p>
                         </div>
+                        <button class="btn btn-light rounded-pill" onclick="refreshDashboard()">
+                            <i class="fas fa-sync-alt"></i> Actualiser
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
+    <!-- Cartes de statistiques personnelles -->
+    <div class="row">
         <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
             <div class="card card-statistic-1 hover-card">
-                <div class="card-icon bg-info">
-                    <i class="fas fa-folder-open"></i>
+                <div class="card-icon bg-primary">
+                    <i class="fas fa-folder"></i>
                 </div>
                 <div class="card-wrap">
                     <div class="card-header">
-                        <h4>Dossiers Actifs</h4>
+                        <h4>Mes Dossiers</h4>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h3 class="mb-0" id="total-dossiers">
+                            <h3 class="mb-0" id="mes-dossiers">
                                 <i class="fas fa-spinner fa-spin"></i>
                             </h3>
-                            <span class="badge badge-pill" id="dossiers-percent">--</span>
+                            <span class="badge badge-pill badge-info" id="dossiers-actifs-badge">0 actifs</span>
                         </div>
                     </div>
                 </div>
@@ -59,10 +57,31 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h3 class="mb-0" id="total-heures">
+                            <h3 class="mb-0" id="mes-heures-mois">
                                 <i class="fas fa-spinner fa-spin"></i>
                             </h3>
                             <span class="badge badge-pill" id="heures-percent">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
+            <div class="card card-statistic-1 hover-card">
+                <div class="card-icon bg-info">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="card-wrap">
+                    <div class="card-header">
+                        <h4>Heures Totales</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0" id="mes-heures-totales">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </h3>
+                            <span class="badge badge-pill badge-secondary">Cumul</span>
                         </div>
                     </div>
                 </div>
@@ -76,14 +95,14 @@
                 </div>
                 <div class="card-wrap">
                     <div class="card-header">
-                        <h4>Congés en cours</h4>
+                        <h4>Mes Congés en cours</h4>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h3 class="mb-0" id="total-conges">
+                            <h3 class="mb-0" id="mes-conges">
                                 <i class="fas fa-spinner fa-spin"></i>
                             </h3>
-                            <span class="badge badge-pill" id="conges-percent">--</span>
+                            <span class="badge badge-pill badge-warning" id="conges-badge">En cours</span>
                         </div>
                     </div>
                 </div>
@@ -91,31 +110,31 @@
         </div>
     </div>
 
-    <!-- Statistiques rapides -->
+    <!-- Statistiques rapides personnelles -->
     <div class="row">
         <div class="col-12">
-            <div class="card gradient-card">
+            <div class="card modern-card">
                 <div class="card-body p-4">
-                    <div class="row text-white">
-                        <div class="col-md-3 text-center border-right-white">
-                            <i class="fas fa-users fa-2x mb-2"></i>
-                            <h6 class="mb-1">Utilisateurs Actifs</h6>
-                            <h4 class="font-weight-bold" id="utilisateurs-actifs">-</h4>
-                        </div>
-                        <div class="col-md-3 text-center border-right-white">
-                            <i class="fas fa-calendar-week fa-2x mb-2"></i>
+                    <div class="row">
+                        <div class="col-md-3 text-center border-right">
+                            <i class="fas fa-calendar-week fa-2x mb-2 text-primary"></i>
                             <h6 class="mb-1">Heures (7 jours)</h6>
-                            <h4 class="font-weight-bold" id="heures-semaine">-</h4>
+                            <h4 class="font-weight-bold text-primary" id="heures-semaine">-</h4>
                         </div>
-                        <div class="col-md-3 text-center border-right-white">
-                            <i class="fas fa-folder-plus fa-2x mb-2"></i>
-                            <h6 class="mb-1">Nouveaux Dossiers</h6>
-                            <h4 class="font-weight-bold" id="nouveaux-dossiers">-</h4>
+                        <div class="col-md-3 text-center border-right">
+                            <i class="fas fa-folder-open fa-2x mb-2 text-info"></i>
+                            <h6 class="mb-1">Dossiers travaillés</h6>
+                            <h4 class="font-weight-bold text-info" id="dossiers-semaine">-</h4>
+                        </div>
+                        <div class="col-md-3 text-center border-right">
+                            <i class="fas fa-calendar-check fa-2x mb-2 text-success"></i>
+                            <h6 class="mb-1">Congés (Ce mois)</h6>
+                            <h4 class="font-weight-bold text-success" id="conges-mois">-</h4>
                         </div>
                         <div class="col-md-3 text-center">
-                            <i class="fas fa-plane-departure fa-2x mb-2"></i>
-                            <h6 class="mb-1">Congés (Ce mois)</h6>
-                            <h4 class="font-weight-bold" id="conges-mois">-</h4>
+                            <i class="fas fa-briefcase fa-2x mb-2 text-warning"></i>
+                            <h6 class="mb-1">Dossiers actifs</h6>
+                            <h4 class="font-weight-bold text-warning" id="dossiers-actifs">-</h4>
                         </div>
                     </div>
                 </div>
@@ -123,42 +142,39 @@
         </div>
     </div>
 
-    <!-- Graphique principal -->
+    <!-- Graphique principal - Mes heures -->
     <div class="row">
         <div class="col-12">
             <div class="card modern-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
-                        <h4 class="mb-0"><i class="fas fa-chart-line text-primary"></i> Évolution des Heures (30 derniers jours)</h4>
-                        <small class="text-muted">Suivi quotidien du temps de travail</small>
+                        <h4 class="mb-0"><i class="fas fa-chart-area text-primary"></i> Mon Activité (30 derniers jours)</h4>
+                        <small class="text-muted">Évolution quotidienne de mes heures travaillées</small>
                     </div>
-                    <button class="btn btn-primary btn-sm rounded-pill" onclick="refreshDashboard()">
-                        <i class="fas fa-sync-alt"></i> Actualiser
-                    </button>
                 </div>
                 <div class="card-body">
-                    <canvas id="chart30days" height="80"></canvas>
+                    <canvas id="chartMesHeures" height="80"></canvas>
                     
                     <div class="row mt-4 pt-3 border-top">
                         <div class="col-md-4 text-center">
                             <div class="stats-box">
                                 <i class="fas fa-clock text-primary fa-2x mb-2"></i>
-                                <h4 class="mb-0" id="total-heures-30j">0</h4>
-                                <p class="text-muted mb-0">Total Heures</p>
+                                <h4 class="mb-0" id="total-heures-30j">0h</h4>
+                                <p class="text-muted mb-0">Total 30 jours</p>
                             </div>
                         </div>
                         <div class="col-md-4 text-center">
                             <div class="stats-box">
-                                <i class="fas fa-folder text-info fa-2x mb-2"></i>
-                                <h4 class="mb-0" id="total-dossiers-30j">0</h4>
-                                <p class="text-muted mb-0">Dossiers Actifs</p>
+                                <i class="fas fa-calendar-day text-success fa-2x mb-2"></i>
+                                <h4 class="mb-0" id="moyenne-jour">0h</h4>
+                                <p class="text-muted mb-0">Moyenne / jour</p>
                             </div>
                         </div>
                         <div class="col-md-4 text-center">
                             <div class="stats-box">
-                                <i class="fas fa-user-friends text-success fa-2x mb-2"></i>
-                                <h4 class="mb-0" id="total-clients-30j">0</h4>
-                                <p class="text-muted mb-0">Nouveaux Clients</p>
+                                <i class="fas fa-fire text-danger fa-2x mb-2"></i>
+                                <h4 class="mb-0" id="max-jour">0h</h4>
+                                <p class="text-muted mb-0">Maximum / jour</p>
                             </div>
                         </div>
                     </div>
@@ -167,71 +183,107 @@
         </div>
     </div>
 
-    <!-- Graphiques secondaires -->
+    <!-- Mes dossiers et congés -->
     <div class="row">
-        <!-- Top 5 Utilisateurs -->
+        <!-- Mes dossiers les plus actifs -->
         <div class="col-lg-6 col-md-12">
             <div class="card modern-card">
                 <div class="card-header">
-                    <h4><i class="fas fa-trophy text-warning"></i> Top 5 - Heures Travaillées</h4>
-                    <small class="text-muted">Classement du mois en cours</small>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartTopUsers" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top Dossiers -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card modern-card">
-                <div class="card-header">
-                    <h4><i class="fas fa-fire text-danger"></i> Dossiers les Plus Actifs</h4>
+                    <h4><i class="fas fa-fire text-danger"></i> Mes Dossiers les Plus Actifs</h4>
                     <small class="text-muted">Par nombre d'heures ce mois</small>
                 </div>
                 <div class="card-body">
-                    <canvas id="chartTopDossiers" height="250"></canvas>
+                    <canvas id="chartMesDossiers" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mes congés par type -->
+        <div class="col-lg-6 col-md-12">
+            <div class="card modern-card">
+                <div class="card-header">
+                    <h4><i class="fas fa-chart-pie text-warning"></i> Répartition de Mes Congés</h4>
+                    <small class="text-muted">Par type (année en cours)</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartMesConges" height="250"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Répartitions -->
-    <div class="row">
-        <!-- Congés par type -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card modern-card">
-                <div class="card-header">
-                    <h4><i class="fas fa-chart-pie text-info"></i> Répartition des Congés</h4>
-                    <small class="text-muted">Par type (mois en cours)</small>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartConges" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dossiers par statut -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card modern-card">
-                <div class="card-header">
-                    <h4><i class="fas fa-tasks text-success"></i> Statut des Dossiers</h4>
-                    <small class="text-muted">Vue d'ensemble globale</small>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartStatuts" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tableau récapitulatif -->
+    <!-- Répartition de mes heures par dossier -->
     <div class="row">
         <div class="col-12">
             <div class="card modern-card">
                 <div class="card-header">
-                    <h4><i class="fas fa-table text-primary"></i> Statistiques Détaillées</h4>
-                    <small class="text-muted">Comparaison des périodes</small>
+                    <h4><i class="fas fa-chart-bar text-info"></i> Répartition de Mes Heures par Dossier</h4>
+                    <small class="text-muted">Top 10 des dossiers (mois en cours)</small>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartHeuresParDossier" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mes dernières activités -->
+    <div class="row">
+        <!-- Mes daily entries récentes -->
+        <div class="col-lg-6 col-md-12">
+            <div class="card modern-card">
+                <div class="card-header">
+                    <h4><i class="fas fa-history text-primary"></i> Mes Dernières Saisies</h4>
+                    <small class="text-muted">7 derniers jours</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th class="text-center">Heures</th>
+                                    <th class="text-center">Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody id="daily-entries-body">
+                                <tr>
+                                    <td colspan="3" class="text-center py-3">
+                                        <i class="fas fa-spinner fa-spin"></i> Chargement...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mes congés à venir -->
+        <div class="col-lg-6 col-md-12">
+            <div class="card modern-card">
+                <div class="card-header">
+                    <h4><i class="fas fa-calendar-alt text-success"></i> Mes Congés à Venir</h4>
+                    <small class="text-muted">Prochains 30 jours</small>
+                </div>
+                <div class="card-body">
+                    <div id="conges-a-venir-list">
+                        <div class="text-center py-3">
+                            <i class="fas fa-spinner fa-spin"></i> Chargement...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau récapitulatif personnel -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card modern-card">
+                <div class="card-header">
+                    <h4><i class="fas fa-table text-primary"></i> Mon Récapitulatif</h4>
+                    <small class="text-muted">Comparaison de mes performances</small>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -313,8 +365,8 @@
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
 
-.border-right-white {
-    border-right: 1px solid rgba(255,255,255,0.3);
+.border-right {
+    border-right: 1px solid #e3e6f0;
 }
 
 /* Cartes modernes */
@@ -394,11 +446,59 @@
     letter-spacing: 0.5px;
 }
 
+/* Badge de statut */
+.badge-statut {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-soumis {
+    background-color: #3abaf4;
+    color: white;
+}
+
+.badge-valide {
+    background-color: #47c363;
+    color: white;
+}
+
+.badge-refuse {
+    background-color: #fc544b;
+    color: white;
+}
+
+/* Congé item */
+.conge-item {
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border-left: 4px solid #6777ef;
+    transition: all 0.3s ease;
+}
+
+.conge-item:hover {
+    background-color: #e9ecef;
+    transform: translateX(5px);
+}
+
+.conge-type {
+    font-weight: 600;
+    color: #34395e;
+}
+
+.conge-dates {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
-    .border-right-white {
+    .border-right {
         border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.3);
+        border-bottom: 1px solid #e3e6f0;
         margin-bottom: 15px;
         padding-bottom: 15px;
     }
@@ -415,7 +515,7 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-let chart30days, chartTopUsers, chartTopDossiers, chartConges, chartStatuts;
+let chartMesHeures, chartMesDossiers, chartMesConges, chartHeuresParDossier;
 
 // Configuration Chart.js globale
 Chart.defaults.font.family = "'Nunito', sans-serif";
@@ -447,13 +547,15 @@ function loadDashboardData() {
         url: '{{ route("dashboard.data") }}',
         method: 'GET',
         success: function(data) {
-            updateStats(data.totals, data.percentages);
-            updateQuickStats(data.totals, data.weekly, data.monthly);
-            updateChart30Days(data.last30days);
-            updateTopUsers(data.topUsers);
-            updateTopDossiers(data.topDossiers);
-            updateCongesChart(data.congesParType);
-            updateStatutsChart(data.dossiersParStatut);
+            console.log('Dashboard data:', data);
+            updatePersonalStats(data);
+            updateQuickStats(data);
+            updateMesHeuresChart(data.last30days);
+            updateMesDossiersChart(data.mesDossiersActifs);
+            updateMesCongesChart(data.mesCongesParType);
+            updateHeuresParDossierChart(data.mesHeuresParDossier);
+            updateDailyEntries(data.mesDailyEntries);
+            updateCongesAVenir(data.mesCongesAVenir);
             updateStatsTable(data);
         },
         error: function(xhr) {
@@ -468,29 +570,44 @@ function loadDashboardData() {
     });
 }
 
-function updateStats(totals, percentages) {
-    // Mettre à jour les totaux avec animation
-    animateValue('total-clients', 0, totals.clients, 1000);
-    animateValue('total-dossiers', 0, totals.dossiers_actifs, 1000);
-    animateValue('total-heures', 0, Math.round(totals.heures_mois), 1000, 'h');
-    animateValue('total-conges', 0, totals.conges_en_cours, 1000);
-
-    // Mettre à jour les pourcentages
-    updatePercentage('#clients-percent', percentages.clients);
-    updatePercentage('#dossiers-percent', percentages.dossiers);
+function updatePersonalStats(data) {
+    const totals = data.totals;
+    const percentages = data.percentages;
+    
+    // Nom de l'utilisateur
+    if (data.user) {
+        $('#user-name').text(data.user.name);
+    }
+    
+    // Mettre à jour les cartes principales
+    animateValue('mes-dossiers', 0, totals.mes_dossiers, 1000);
+    animateValue('mes-heures-mois', 0, Math.round(totals.heures_mois), 1000, 'h');
+    animateValue('mes-heures-totales', 0, Math.round(totals.heures_totales), 1000, 'h');
+    animateValue('mes-conges', 0, totals.mes_conges_en_cours, 1000);
+    
+    // Badges
+    $('#dossiers-actifs-badge').text(totals.dossiers_actifs + ' actifs');
+    $('#conges-badge').text(totals.mes_conges_en_cours > 0 ? 'En cours' : 'Aucun');
+    
+    // Pourcentage d'évolution des heures
     updatePercentage('#heures-percent', percentages.heures);
-    updatePercentage('#conges-percent', percentages.conges);
 }
 
-function updateQuickStats(totals, weekly, monthly) {
-    $('#utilisateurs-actifs').text(totals.utilisateurs_actifs);
+function updateQuickStats(data) {
+    const weekly = data.weekly;
+    const monthly = data.monthly;
+    const totals = data.totals;
+    
     $('#heures-semaine').html(Math.round(weekly.heures) + '<small>h</small>');
-    $('#nouveaux-dossiers').text(weekly.dossiers);
+    $('#dossiers-semaine').text(weekly.dossiers_travailles);
     $('#conges-mois').text(monthly.conges);
+    $('#dossiers-actifs').text(totals.dossiers_actifs);
 }
 
 function animateValue(id, start, end, duration, suffix = '') {
     const element = document.getElementById(id);
+    if (!element) return;
+    
     const range = end - start;
     const increment = range / (duration / 16);
     let current = start;
@@ -523,75 +640,58 @@ function updatePercentage(selector, value) {
     }
 }
 
-function updateChart30Days(data) {
-    const ctx = document.getElementById('chart30days').getContext('2d');
+function updateMesHeuresChart(data) {
+    const ctx = document.getElementById('chartMesHeures');
+    if (!ctx) return;
     
-    if (chart30days) chart30days.destroy();
+    if (chartMesHeures) chartMesHeures.destroy();
     
-    chart30days = new Chart(ctx, {
+    const heuresData = data.heures;
+    const totalHeures = heuresData.reduce((a, b) => a + b, 0);
+    const moyenneHeures = totalHeures / heuresData.length;
+    const maxHeures = Math.max(...heuresData);
+    
+    chartMesHeures = new Chart(ctx.getContext('2d'), {
         type: 'line',
         data: {
             labels: data.dates,
-            datasets: [
-                {
-                    label: 'Heures travaillées',
-                    data: data.heures,
-                    borderColor: '#6777ef',
-                    backgroundColor: 'rgba(103, 119, 239, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    borderWidth: 3,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                },
-                {
-                    label: 'Dossiers',
-                    data: data.dossiers,
-                    borderColor: '#3abaf4',
-                    backgroundColor: 'rgba(58, 186, 244, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5
-                },
-                {
-                    label: 'Clients',
-                    data: data.clients,
-                    borderColor: '#ffa426',
-                    backgroundColor: 'rgba(255, 164, 38, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5
-                }
-            ]
+            datasets: [{
+                label: 'Mes heures',
+                data: heuresData,
+                borderColor: '#6777ef',
+                backgroundColor: 'rgba(103, 119, 239, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#6777ef',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        padding: 15,
-                        font: { size: 12, weight: '600' }
-                    }
-                },
+                legend: { display: false },
                 tooltip: {
                     mode: 'index',
                     intersect: false,
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
-                    titleFont: { size: 13, weight: 'bold' },
-                    bodyFont: { size: 12 }
+                    callbacks: {
+                        label: (context) => context.parsed.y.toFixed(2) + ' heures'
+                    }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: {
+                        callback: (value) => value + 'h'
+                    }
                 },
                 x: {
                     grid: { display: false }
@@ -601,22 +701,29 @@ function updateChart30Days(data) {
     });
     
     // Totaux
-    $('#total-heures-30j').text(Math.round(data.heures.reduce((a, b) => a + b, 0)) + 'h');
-    $('#total-dossiers-30j').text(data.dossiers.reduce((a, b) => a + b, 0));
-    $('#total-clients-30j').text(data.clients.reduce((a, b) => a + b, 0));
+    $('#total-heures-30j').text(Math.round(totalHeures) + 'h');
+    $('#moyenne-jour').text(moyenneHeures.toFixed(1) + 'h');
+    $('#max-jour').text(maxHeures.toFixed(1) + 'h');
 }
 
-function updateTopUsers(data) {
-    const ctx = document.getElementById('chartTopUsers').getContext('2d');
+function updateMesDossiersChart(data) {
+    const ctx = document.getElementById('chartMesDossiers');
+    if (!ctx) return;
     
-    if (chartTopUsers) chartTopUsers.destroy();
+    if (chartMesDossiers) chartMesDossiers.destroy();
     
-    chartTopUsers = new Chart(ctx, {
+    if (!data.names || data.names.length === 0) {
+        ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+        $(ctx).parent().html('<div class="text-center py-4 text-muted"><i class="fas fa-inbox fa-3x mb-3"></i><p>Aucun dossier actif ce mois</p></div>');
+        return;
+    }
+    
+    chartMesDossiers = new Chart(ctx.getContext('2d'), {
         type: 'bar',
         data: {
             labels: data.names,
             datasets: [{
-                label: 'Heures travaillées',
+                label: 'Heures',
                 data: data.heures,
                 backgroundColor: [
                     '#6777ef', '#3abaf4', '#ffa426', '#fc544b', '#47c363'
@@ -633,65 +740,38 @@ function updateTopUsers(data) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (context) => context.parsed.x + ' heures'
+                        label: (context) => context.parsed.x.toFixed(2) + ' heures'
                     }
                 }
             },
             scales: {
-                x: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
+                x: { 
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: {
+                        callback: (value) => value + 'h'
+                    }
+                },
                 y: { grid: { display: false } }
             }
         }
     });
 }
 
-function updateTopDossiers(data) {
-    const ctx = document.getElementById('chartTopDossiers').getContext('2d');
+function updateMesCongesChart(data) {
+    const ctx = document.getElementById('chartMesConges');
+    if (!ctx) return;
     
-    if (chartTopDossiers) chartTopDossiers.destroy();
+    if (chartMesConges) chartMesConges.destroy();
     
-    chartTopDossiers = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: data.names,
-            datasets: [{
-                label: 'Heures',
-                data: data.heures,
-                backgroundColor: [
-                    '#fc544b', '#ffa426', '#47c363', '#3abaf4', '#6777ef'
-                ],
-                borderRadius: 8,
-                barThickness: 40
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => context.parsed.x + ' heures'
-                    }
-                }
-            },
-            scales: {
-                x: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-                y: { grid: { display: false } }
-            }
-        }
-    });
-}
-
-function updateCongesChart(data) {
-    const ctx = document.getElementById('chartConges').getContext('2d');
-    
-    if (chartConges) chartConges.destroy();
+    if (!data.types || data.types.length === 0) {
+        $(ctx).parent().html('<div class="text-center py-4 text-muted"><i class="fas fa-calendar-times fa-3x mb-3"></i><p>Aucun congé cette année</p></div>');
+        return;
+    }
     
     const colors = ['#6777ef', '#ffa426', '#47c363', '#fc544b'];
     
-    chartConges = new Chart(ctx, {
+    chartMesConges = new Chart(ctx.getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: data.types,
@@ -709,49 +789,167 @@ function updateCongesChart(data) {
                 legend: {
                     position: 'bottom',
                     labels: { padding: 15, font: { size: 12 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => context.label + ': ' + context.parsed + ' congé(s)'
+                    }
                 }
             }
         }
     });
 }
 
-function updateStatutsChart(data) {
-    const ctx = document.getElementById('chartStatuts').getContext('2d');
+function updateHeuresParDossierChart(data) {
+    const ctx = document.getElementById('chartHeuresParDossier');
+    if (!ctx) return;
     
-    if (chartStatuts) chartStatuts.destroy();
+    if (chartHeuresParDossier) chartHeuresParDossier.destroy();
     
-    const colors = {
-        'ouvert': '#3abaf4',
-        'en_cours': '#6777ef',
-        'suspendu': '#ffa426',
-        'cloture': '#47c363',
-        'archive': '#95a5a6'
-    };
+    if (!data.dossiers || data.dossiers.length === 0) {
+        $(ctx).parent().html('<div class="text-center py-4 text-muted"><i class="fas fa-folder-open fa-3x mb-3"></i><p>Aucune activité ce mois</p></div>');
+        return;
+    }
     
-    const bgColors = data.statuts.map(s => colors[s] || '#95a5a6');
-    
-    chartStatuts = new Chart(ctx, {
-        type: 'pie',
+    chartHeuresParDossier = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
         data: {
-            labels: data.statuts.map(s => s.replace('_', ' ').toUpperCase()),
+            labels: data.dossiers,
             datasets: [{
-                data: data.counts,
-                backgroundColor: bgColors,
-                borderWidth: 3,
-                borderColor: '#fff'
+                label: 'Heures',
+                data: data.heures,
+                backgroundColor: '#3abaf4',
+                borderRadius: 6
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 15, font: { size: 12 } }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => context.parsed.y.toFixed(2) + ' heures'
+                    }
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: {
+                        callback: (value) => value + 'h'
+                    }
+                },
+                x: { 
+                    grid: { display: false },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
                 }
             }
         }
     });
+}
+
+function updateDailyEntries(entries) {
+    const tbody = $('#daily-entries-body');
+    
+    if (!entries || entries.length === 0) {
+        tbody.html('<tr><td colspan="3" class="text-center py-3 text-muted">Aucune saisie récente</td></tr>');
+        return;
+    }
+    
+    let html = '';
+    entries.forEach(entry => {
+        let statutBadge = '';
+        let statutClass = '';
+        
+        if (entry.statut === 'valide') {
+            statutClass = 'badge-valide';
+            statutBadge = '<i class="fas fa-check-circle"></i> Validé';
+        } else if (entry.statut === 'refuse') {
+            statutClass = 'badge-refuse';
+            statutBadge = '<i class="fas fa-times-circle"></i> Refusé';
+        } else {
+            statutClass = 'badge-soumis';
+            statutBadge = '<i class="fas fa-clock"></i> Soumis';
+        }
+        
+        const weekend = entry.is_weekend ? '<i class="fas fa-mug-hot text-warning ml-1" title="Week-end"></i>' : '';
+        const holiday = entry.is_holiday ? '<i class="fas fa-calendar-day text-danger ml-1" title="Jour férié"></i>' : '';
+        
+        html += `
+            <tr>
+                <td>${entry.jour} ${weekend} ${holiday}</td>
+                <td class="text-center">
+                    <strong>${entry.heures_reelles}h</strong>
+                    ${entry.heures_theoriques > 0 ? '<small class="text-muted">/ ' + entry.heures_theoriques + 'h</small>' : ''}
+                </td>
+                <td class="text-center">
+                    <span class="badge badge-statut ${statutClass}">${statutBadge}</span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.html(html);
+}
+
+function updateCongesAVenir(conges) {
+    const container = $('#conges-a-venir-list');
+    
+    if (!conges || conges.length === 0) {
+        container.html('<div class="text-center py-3 text-muted"><i class="fas fa-calendar-check fa-2x mb-2"></i><p>Aucun congé prévu</p></div>');
+        return;
+    }
+    
+    let html = '';
+    conges.forEach(conge => {
+        let typeIcon = '';
+        let typeColor = '#6777ef';
+        
+        switch(conge.type) {
+            case 'MALADIE':
+                typeIcon = 'fa-medkit';
+                typeColor = '#fc544b';
+                break;
+            case 'MATERNITE':
+                typeIcon = 'fa-baby';
+                typeColor = '#ffa426';
+                break;
+            case 'REMUNERE':
+                typeIcon = 'fa-umbrella-beach';
+                typeColor = '#47c363';
+                break;
+            case 'NON REMUNERE':
+                typeIcon = 'fa-plane-departure';
+                typeColor = '#95a5a6';
+                break;
+        }
+        
+        html += `
+            <div class="conge-item" style="border-left-color: ${typeColor}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="conge-type">
+                            <i class="fas ${typeIcon}" style="color: ${typeColor}"></i>
+                            ${conge.type}
+                        </div>
+                        <div class="conge-dates">
+                            <i class="fas fa-calendar"></i> ${conge.debut} - ${conge.fin}
+                        </div>
+                    </div>
+                    <div>
+                        <span class="badge badge-primary badge-pill">${conge.jours} jour(s)</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.html(html);
 }
 
 function updateStatsTable(data) {
@@ -760,10 +958,30 @@ function updateStatsTable(data) {
     const percentages = data.percentages;
     
     const rows = [
-        { name: 'Heures travaillées', icon: 'fa-clock', color: '#6777ef', week: Math.round(weekly.heures), month: Math.round(monthly.heures), percent: percentages.heures },
-        { name: 'Dossiers', icon: 'fa-folder', color: '#3abaf4', week: weekly.dossiers, month: monthly.dossiers, percent: percentages.dossiers },
-        { name: 'Clients', icon: 'fa-briefcase', color: '#47c363', week: weekly.clients, month: monthly.clients, percent: percentages.clients },
-        { name: 'Congés', icon: 'fa-umbrella-beach', color: '#ffa426', week: weekly.conges, month: monthly.conges, percent: percentages.conges }
+        { 
+            name: 'Heures travaillées', 
+            icon: 'fa-clock', 
+            color: '#6777ef', 
+            week: Math.round(weekly.heures) + 'h', 
+            month: Math.round(monthly.heures) + 'h', 
+            percent: percentages.heures 
+        },
+        { 
+            name: 'Dossiers travaillés', 
+            icon: 'fa-folder', 
+            color: '#3abaf4', 
+            week: weekly.dossiers_travailles, 
+            month: monthly.dossiers_travailles, 
+            percent: percentages.dossiers 
+        },
+        { 
+            name: 'Congés', 
+            icon: 'fa-umbrella-beach', 
+            color: '#ffa426', 
+            week: 0, 
+            month: monthly.conges, 
+            percent: '0' 
+        }
     ];
     
     let html = '';
@@ -772,21 +990,18 @@ function updateStatsTable(data) {
         const badgeClass = isPositive ? 'badge-success-gradient' : 'badge-danger-gradient';
         const icon = isPositive ? 'fa-arrow-up' : 'fa-arrow-down';
         
-                html += `
+        html += `
             <tr>
                 <td>
                     <i class="fas ${row.icon}" style="color: ${row.color};"></i>
                     ${row.name}
                 </td>
+                <td class="text-center"><strong>${row.week}</strong></td>
+                <td class="text-center"><strong>${row.month}</strong></td>
                 <td class="text-center">
-                    <strong>${row.week + row.month}</strong>
-                </td>
-                <td class="text-center">${row.week}</td>
-                <td class="text-center">${row.month}</td>
-                <td class="text-center">
-                    <span class="badge badge-${badgeClass}">
-                        <i class="fas ${arrowIcon}"></i>
-                        ${Math.abs(evolutionInt)}% du mois
+                    <span class="badge ${badgeClass}">
+                        <i class="fas ${icon}"></i>
+                        ${Math.abs(parseInt(row.percent))}%
                     </span>
                 </td>
             </tr>

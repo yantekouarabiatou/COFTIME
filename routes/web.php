@@ -58,6 +58,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/user-stats/{userId}', [DashboardController::class, 'userStats'])->name('dashboard.user-stats');
     Route::post('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
     Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggleStatus');
+
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');

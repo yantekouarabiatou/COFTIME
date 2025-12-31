@@ -45,6 +45,11 @@ class Dossier extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function timeEntries()
+    {
+        return $this->hasMany(TimeEntry::class, 'dossier_id');
+    }
+
     /**
      * Accessor pour l'URL du document
      */
