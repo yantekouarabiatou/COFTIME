@@ -2,21 +2,11 @@
 
 namespace App\Rules;
 
-use Closure;
-use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Rule;
+use App\Models\TimeEntry;
 
-class BelongsToDailyEntry implements ValidationRule
+class BelongsToDailyEntry implements Rule
 {
-    /**
-     * Run the validation rule.
-     *
-     * @param  \Closure(string, ?string=): \Illuminate\Translation\PotentiallyTranslatedString  $fail
-     */
-    public function validate(string $attribute, mixed $value, Closure $fail): void
-    {
-        //
-    }
-
     protected $dailyEntryId;
 
     public function __construct($dailyEntryId)
@@ -26,18 +16,18 @@ class BelongsToDailyEntry implements ValidationRule
 
     public function passes($attribute, $value)
     {
-        // $attribute = time_entries.0.id par exemple
-        // $value = l'ID du time_entry
+        if (empty($value)) {
+            return true; // Les nouvelles entrées n'ont pas d'ID
+        }
 
-        if (!$value) return true; // nullable
-
-        return \App\Models\TimeEntry::where('id', $value)
+        // Vérifie que l'TimeEntry appartient bien au DailyEntry
+        return TimeEntry::where('id', $value)
             ->where('daily_entry_id', $this->dailyEntryId)
             ->exists();
     }
 
     public function message()
     {
-        return 'L\'activité sélectionnée n\'appartient pas à cette feuille de temps.';
+        return 'Cette activité de temps ne fait pas partie de cette feuille de temps.';
     }
 }

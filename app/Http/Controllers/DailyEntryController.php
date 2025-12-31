@@ -10,8 +10,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DailyEntriesExport;
+use App\Models\CompanySetting;
+use App\Models\TimeEntry;
 use App\Rules\BelongsToDailyEntry;
-
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 class DailyEntryController extends Controller
 {
     /**
@@ -35,7 +38,7 @@ class DailyEntryController extends Controller
         }
 
         // Pour les responsables : feuilles à valider
-        if ($request->has('pending') && auth()->user()->hasRole('responsable')) {
+        if ($request->has('pending') && auth()->user()->hasRole('Directeur Général')) {
             $query->where('statut', 'soumis')
                 ->where('user_id', '!=', auth()->id()); // optionnel : exclure les siennes
         }
@@ -182,6 +185,7 @@ class DailyEntryController extends Controller
      */
     public function update(Request $request, DailyEntry $dailyEntry)
     {
+        // Validation de base
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'jour' => 'required|date',
@@ -189,16 +193,38 @@ class DailyEntryController extends Controller
             'commentaire' => 'nullable|string',
             'statut' => 'required|in:soumis,validé,refusé',
             'time_entries' => 'required|array|min:1',
-            'time_entries.*.id' => ['nullable', new BelongsToDailyEntry($dailyEntry->id)],
-            'time_entries.*.dossier_id' => 'required|exists:dossiers,id',
-            'time_entries.*.heure_debut' => 'required|date_format:H:i',
-            'time_entries.*.heure_fin' => 'required|date_format:H:i',
-            'time_entries.*.heures_reelles' => 'required|numeric|min:0.25',
-            'time_entries.*.travaux' => 'nullable|string|max:500',
         ]);
 
+        // Validation détaillée pour les time_entries
+        foreach ($request->time_entries as $index => $entry) {
+            $validator = Validator::make($entry, [
+                'id' => ['nullable', 'exists:time_entries,id'],
+                'dossier_id' => 'required|exists:dossiers,id',
+                'heure_debut' => 'required|date_format:H:i',
+                'heure_fin' => 'required|date_format:H:i',
+                'heures_reelles' => 'required|numeric|min:0.25',
+                'travaux' => 'nullable|string|max:500',
+            ]);
+
+            if ($validator->fails()) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors($validator->errors());
+            }
+
+            // Vérifier que l'TimeEntry appartient bien au DailyEntry si ID existe
+            if (!empty($entry['id'])) {
+                $timeEntry = TimeEntry::find($entry['id']);
+                if (!$timeEntry || $timeEntry->daily_entry_id != $dailyEntry->id) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['error' => 'Activité invalide.']);
+                }
+            }
+        }
+
         // Calcul du total des heures réelles
-        $totalHeures = collect($validated['time_entries'])->sum('heures_reelles');
+        $totalHeures = collect($request->time_entries)->sum('heures_reelles');
 
         // Mise à jour de la feuille principale
         $dailyEntry->update([
@@ -212,9 +238,9 @@ class DailyEntryController extends Controller
 
         $existingIds = [];
 
-        foreach ($validated['time_entries'] as $entry) {
+        foreach ($request->time_entries as $entry) {
             $data = [
-                'user_id' => $dailyEntry->user_id, // bonne pratique : on le remet à jour
+                'user_id' => $dailyEntry->user_id,
                 'dossier_id' => $entry['dossier_id'],
                 'heure_debut' => $entry['heure_debut'],
                 'heure_fin' => $entry['heure_fin'],
@@ -222,11 +248,13 @@ class DailyEntryController extends Controller
                 'travaux' => $entry['travaux'] ?? null,
             ];
 
-            if (isset($entry['id'])) {
+            if (isset($entry['id']) && !empty($entry['id'])) {
                 // Mise à jour d'une entrée existante
-                $timeEntry = $dailyEntry->timeEntries()->findOrFail($entry['id']);
-                $timeEntry->update($data);
-                $existingIds[] = $timeEntry->id;
+                $timeEntry = $dailyEntry->timeEntries()->find($entry['id']);
+                if ($timeEntry) {
+                    $timeEntry->update($data);
+                    $existingIds[] = $timeEntry->id;
+                }
             } else {
                 // Création d'une nouvelle activité
                 $newEntry = $dailyEntry->timeEntries()->create($data);
@@ -264,11 +292,6 @@ class DailyEntryController extends Controller
      */
     public function validateEntry(DailyEntry $dailyEntry)
     {
-        if (!Auth::user()->hasRole('responsable')) {
-            return redirect()->back()
-                ->with('error', 'Vous n\'avez pas les permissions pour valider les feuilles de temps.');
-        }
-
         $dailyEntry->update([
             'statut' => 'validé',
             'valide_par' => Auth::id(),
@@ -340,32 +363,75 @@ class DailyEntryController extends Controller
         ]);
     }
 
-
-    /**
-     * Export des feuilles de temps
-     */
     public function export(Request $request)
     {
-        $format = $request->get('format', 'excel'); // excel, csv, pdf
+        $request->validate([
+            'date_debut' => 'required|date',
+            'date_fin'   => 'required|date|after_or_equal:date_debut',
+            'format'     => 'required|in:excel,pdf,csv',
+        ]);
 
-        $filename = 'feuilles-de-temps_' . now()->format('Y-m-d') . '.';
+        $dateDebut = Carbon::parse($request->date_debut);
+        $dateFin   = Carbon::parse($request->date_fin);
+        $format    = $request->format;
 
-        if ($format === 'csv') {
-            $filename .= 'csv';
-            return Excel::download(new DailyEntriesExport, $filename, \Maatwebsite\Excel\Excel::CSV, [
-                'Content-Type' => 'text/csv',
-            ]);
+        // Récupère les données avec les relations nécessaires
+        $entries = DailyEntry::with(['user', 'user.poste', 'timeEntries.dossier'])
+            ->whereBetween('jour', [$dateDebut, $dateFin])
+            ->orderBy('jour', 'desc')
+            ->orderBy('user_id')
+            ->get();
+
+        $filename = 'feuilles-temps_' . $dateDebut->format('Y-m-d') . '_au_' . $dateFin->format('Y-m-d');
+
+        if ($format === 'excel' || $format === 'csv') {
+            return Excel::download(
+                new DailyEntriesExport($entries, $dateDebut, $dateFin),
+                $filename . ($format === 'csv' ? '.csv' : '.xlsx'),
+                $format === 'csv' ? \Maatwebsite\Excel\Excel::CSV : \Maatwebsite\Excel\Excel::XLSX
+            );
         }
 
         if ($format === 'pdf') {
-            // Pour PDF, on utilise une vue Blade (plus joli)
-            $entries = DailyEntry::with(['user', 'timeEntries.dossier.client'])->latest()->get();
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pages.daily-entries.pdf-export', compact('entries'));
-            return $pdf->download('feuilles-de-temps_' . now()->format('Y-m-d') . '.pdf');
-        }
+            $pdf = Pdf::loadView('pages.daily-entries.export.pdf', compact('entries', 'dateDebut', 'dateFin'))
+                ->setPaper('a4', 'landscape');
 
-        // Par défaut : Excel
-        $filename .= 'xlsx';
-        return Excel::download(new DailyEntriesExport, $filename);
+            return $pdf->download($filename . '.pdf');
+        }
     }
+
+   
+
+public function pdf(DailyEntry $dailyEntry)
+{
+    // Chargement des relations
+    $dailyEntry->load(['user.poste', 'timeEntries.dossier']);
+
+    // Sécurité : si la feuille n'existe pas ou jour est null → erreur 404 propre
+    if (!$dailyEntry->exists || is_null($dailyEntry->jour)) {
+        abort(404, 'Feuille de temps non trouvée ou date invalide.');
+    }
+
+    // Logo
+    $logoPath = public_path('images/logo.png');
+    $logoBase64 = file_exists($logoPath)
+        ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+        : null;
+
+    // Paramètres entreprise
+    $companySetting = CompanySetting::first();
+
+    // Nom du fichier sécurisé
+    $dateFile = Carbon::parse($dailyEntry->jour)->format('Y-m-d');
+    $filename = "feuille-temps-{$dateFile}.pdf";
+
+    $pdf = Pdf::loadView('pages.daily-entries.export.pdf1', [
+        'entry' => $dailyEntry,  // renommé en $entry dans la vue
+        'logoBase64' => $logoBase64,
+        'companySetting' => $companySetting,
+    ])->setPaper('a4', 'portrait');
+
+    return $pdf->stream($filename);
+    // ou ->download($filename) si tu veux forcer le téléchargement
+}
 }

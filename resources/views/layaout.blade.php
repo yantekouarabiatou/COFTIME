@@ -175,7 +175,7 @@
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-wrapper position-relative">
                                         @if($user->photo)
-                                            <img alt="image" src="{{ asset('storage/' . $user->photo) }}"
+                                            <img alt="image" src="{{ asset('storage/app/public' . $user->photo) }}"
                                                 class="user-img-radious-style"
                                                 style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%;">
                                         @else
@@ -379,23 +379,6 @@
                 </li>
             @endcan
 
-            <li class="dropdown {{ request()->is('conges*') ? 'active' : '' }}">
-                <a href="#" class="menu-toggle nav-link has-dropdown {{ request()->is('conges*') ? 'active' : '' }}">
-                    <i class="fas fa-umbrella-beach"></i><span>Gestion des Congés</span>
-                </a>
-                <ul class="dropdown-menu" style="{{ request()->is('conges*') ? 'display: block;' : '' }}">
-                    
-                        <li class="{{ request()->routeIs('conges.create') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('conges.create') }}"><i class="fas fa-user-plus"></i> Créer un congé</a>
-                        </li>
-                   
-                    
-                        <li class="{{ request()->routeIs('conges.index') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('conges.index') }}"><i class="fas fa-list"></i> Liste des congés</a>
-                        </li>
-                    
-                </ul>
-            </li>
             {{-- Gestion des Temps --}}
             @can(['voir les entrées journalières', 'créer des entrées journalières', 'voir tous les temps'])
                 <li class="dropdown {{ request()->routeIs('daily-entries.*') || request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
@@ -413,7 +396,7 @@
                         @can(['voir les entrées journalières', 'voir tous les temps'])
                             <li class="{{ request()->routeIs('daily-entries.index') ? 'active' : '' }}">
                                 <a class="nav-link" href="{{ route('daily-entries.index') }}">
-                                    <i class="fas fa-list-alt"></i> Liste des taches
+                                    <i class="fas fa-list-alt"></i> Liste des tache
                                 </a>
                             </li>
                         @endcan

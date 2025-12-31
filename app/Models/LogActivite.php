@@ -10,9 +10,16 @@ class LogActivite extends Model
     protected $table = 'log_activites';
 
     protected $fillable = [
-        'user_id', 'action', 'loggable_type', 'loggable_id',
-        'description', 'old_values', 'new_values',
-        'ip_address', 'user_agent', 'status'
+        'user_id',
+        'action',
+        'loggable_type',
+        'loggable_id',
+        'description',
+        'old_values',
+        'new_values',
+        'ip_address',
+        'user_agent',
+        'status',
     ];
 
     protected $casts = [
@@ -20,84 +27,95 @@ class LogActivite extends Model
         'new_values' => 'array',
     ];
 
+    // ------------------------------------------------------------------
+    // Relations
+    // ------------------------------------------------------------------
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
     /**
-     * Relation polymorphe ultra-robuste
-     * Fonctionne même si :
-     * - le modèle est supprimé (withTrashed)
-     * - le type est "notifications"
-     * - le modèle n'est pas dans une liste stricte
+     * Relation polymorphe robuste
      */
     public function loggable(): MorphTo
     {
         return $this->morphTo('loggable', 'loggable_type', 'loggable_id')
-                    ->withTrashed()
-                    ->withDefault(function () {
-                        // Retourne un modèle "fantôme" propre
-                        return new class extends Model {
-                            public $exists = false;
-                            protected $attributes = ['id' => null];
-                            public function getKey() { return null; }
-                            public function __toString() { return 'Ressource supprimée'; }
-                        };
-                    });
+            ->withTrashed()
+            ->withDefault(function () {
+                return new class extends Model {
+                    public $exists = false;
+                    protected $attributes = ['id' => null];
+                    public function getKey() { return null; }
+                    public function __toString() { return 'Ressource supprimée'; }
+                };
+            });
     }
 
-    // === Accesseurs (100% fonctionnels même si loggable est "fantôme") ===
+    // ------------------------------------------------------------------
+    // Accesseurs
+    // ------------------------------------------------------------------
 
     public function getLoggableExistsAttribute(): bool
     {
         return $this->loggable && $this->loggable->exists;
     }
 
+    /**
+     * Icône FontAwesome selon l'action
+     */
     public function getIconAttribute(): string
     {
         return match ($this->action) {
-            'created', 'create'     => 'fa-plus-circle text-success',
-            'updated', 'update'     => 'fa-edit text-warning',
-            'deleted', 'delete'     => 'fa-trash text-danger',
-            'restored', 'restore'   => 'fa-undo text-info',
-            'login'                 => 'fa-sign-in-alt text-primary',
-            'logout'                => 'fa-sign-out-alt text-secondary',
-            'force-deleted'         => 'fa-skull-crossbones text-dark',
-            default                 => 'fa-cog text-muted',
+            'created', 'create'   => 'fa-plus-circle text-success',
+            'updated', 'update'   => 'fa-edit text-warning',
+            'deleted', 'delete'   => 'fa-trash text-danger',
+            'restored', 'restore' => 'fa-undo text-info',
+            'login'               => 'fa-sign-in-alt text-primary',
+            'logout'              => 'fa-sign-out-alt text-secondary',
+            default               => 'fa-cog text-muted',
         };
     }
 
+    /**
+     * Couleur Bootstrap selon l'action
+     */
     public function getActionColorAttribute(): string
     {
         return match ($this->action) {
-            'created', 'create'     => 'success',
-            'updated', 'update'     => 'warning',
-            'deleted', 'delete'     => 'danger',
-            'restored', 'restore'   => 'info',
-            'login', 'logout'       => 'primary',
-            default                 => 'secondary',
+            'created', 'create'   => 'success',
+            'updated', 'update'   => 'warning',
+            'deleted', 'delete'   => 'danger',
+            'restored', 'restore' => 'info',
+            'login', 'logout'     => 'primary',
+            default               => 'secondary',
         };
     }
 
+    /**
+     * URL de redirection selon le modèle loggé
+     */
     public function getUrlAttribute(): ?string
     {
-        if (!$this->loggable?->exists) return null;
+        if (!$this->loggable?->exists) {
+            return null;
+        }
 
         return match (true) {
-            $this->loggable instanceof \App\Models\Poste           => route('postes.show', $this->loggable),
-            $this->loggable instanceof \App\Models\User           => route('users.show', $this->loggable),
-            $this->loggable instanceof \App\Models\Plainte        => route('plaintes.show', $this->loggable),
-            $this->loggable instanceof \App\Models\ClientAudit    => route('clients-audit.show', $this->loggable),
-            $this->loggable instanceof \App\Models\CadeauInvitation => route('cadeau-invitations.show', $this->loggable),
-            $this->loggable instanceof \App\Models\Interet        => route('interets.show', $this->loggable),
-            $this->loggable instanceof \App\Models\Independance   => route('independances.show', $this->loggable),
-            $this->loggable instanceof \App\Models\Assignation     => route('plaintes.show', $this->loggable),
-            // Ajoute les autres ici si besoin
-            default                                                => null,
+            $this->loggable instanceof \App\Models\Client     => route('clients.show', $this->loggable),
+            $this->loggable instanceof \App\Models\Dossier    => route('dossiers.show', $this->loggable),
+            $this->loggable instanceof \App\Models\DailyEntry => route('daily-entries.show', $this->loggable),
+            $this->loggable instanceof \App\Models\TimeEntry  => route('time-entries.show', $this->loggable),
+            $this->loggable instanceof \App\Models\Conge      => route('conges.show', $this->loggable),
+            $this->loggable instanceof \App\Models\User       => route('users.show', $this->loggable),
+            default                                           => null,
         };
     }
 
+    /**
+     * Référence lisible affichée dans les logs
+     */
     public function getReferenceAttribute(): string
     {
         if (!$this->loggable?->exists) {
@@ -106,14 +124,12 @@ class LogActivite extends Model
 
         $model = $this->loggable;
 
-        return $model->reference
+        return
+            $model->reference
             ?? $model->nom
-            ?? $model->titre
-            ?? $model->intitule
-            ?? $model->nom_client
-            ?? trim(($model->prenom ?? '') . ' ' . ($model->nom ?? ''))
+            ?? $model->full_name
             ?? $model->email
-            ?? $model->sujet
+            ?? ($model->jour?->format('d/m/Y') ?? null)
             ?? class_basename($model) . ' #' . $model->id;
     }
 }

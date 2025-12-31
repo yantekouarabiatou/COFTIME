@@ -25,7 +25,7 @@
                             </a>
                             @endif
 
-                            @if(auth()->user()->hasRole('responsable') && $dailyEntry->statut == 'soumis')
+                            @if(auth()->user()->hasRole('Directeur Général') && $dailyEntry->statut == 'soumis')
                             <button type="button" class="btn btn-icon icon-left btn-success" id="validate-btn">
                                 <i class="fas fa-check"></i> Valider
                             </button>
@@ -33,6 +33,10 @@
                                 <i class="fas fa-times"></i> Refuser
                             </button>
                             @endif
+
+                            <a href="{{ route('daily-entries.pdf', $dailyEntry) }}" target="_blank" class="btn btn-info">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </a>
 
                             <a href="{{ route('daily-entries.index') }}" class="btn btn-icon icon-left btn-primary">
                                 <i class="fas fa-arrow-left"></i> Retour

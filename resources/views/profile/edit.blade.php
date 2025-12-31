@@ -1,11 +1,29 @@
 @extends('layaout')
 
-@section('title', 'Profil Utilisateur')
+@section('title', 'Modifier mon Profil')
 
 @section('content')
     <section class="section">
         <div class="section-body">
+            <!-- Breadcrumb -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-body py-3">
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0 bg-transparent">
+                                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                                    <li class="breadcrumb-item"><a href="{{ route('user-profile.show', $user->id) }}">Mon Profil</a></li>
+                                    <li class="breadcrumb-item active">Modifier</li>
+                                </ol>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row">
+                <!-- Colonne gauche: Photo et infos -->
                 <div class="col-md-4">
                     <!-- Carte Profil -->
                     <div class="card card-primary">
@@ -14,8 +32,8 @@
                         </div>
                         <div class="card-body text-center">
                             <div class="mb-3">
-                                @if(auth()->user()->photo)
-                                    <img src="{{ asset('storage/' . auth()->user()->photo) }}"
+                                @if($user->photo)
+                                    <img src="{{ asset('storage/' . $user->photo) }}"
                                          alt="Photo profil"
                                          class="img-fluid rounded-circle"
                                          style="width: 180px; height: 180px; object-fit: cover;">
@@ -26,11 +44,11 @@
                                     </div>
                                 @endif
                             </div>
-                            <h5 class="mb-1">{{ auth()->user()->prenom }} {{ auth()->user()->nom }}</h5>
-                            <p class="text-muted mb-0">{{ auth()->user()->poste->intitule ?? 'Non spécifié' }}</p>
+                            <h5 class="mb-1">{{ $user->prenom }} {{ $user->nom }}</h5>
+                            <p class="text-muted mb-0">{{ $user->poste->intitule ?? 'Non spécifié' }}</p>
                             <div class="mt-3">
-                                <span class="badge badge-{{ auth()->user()->is_active ? 'success' : 'danger' }}">
-                                    {{ auth()->user()->is_active ? 'Actif' : 'Inactif' }}
+                                <span class="badge badge-{{ $user->is_active ? 'success' : 'danger' }}">
+                                    {{ $user->is_active ? 'Actif' : 'Inactif' }}
                                 </span>
                             </div>
                         </div>
@@ -44,11 +62,11 @@
                         <div class="card-body">
                             <div class="form-group">
                                 <label>Email</label>
-                                <input type="email" class="form-control" value="{{ auth()->user()->email }}" readonly>
+                                <input type="email" class="form-control" value="{{ $user->email }}" readonly>
                             </div>
                             <div class="form-group">
                                 <label>Nom d'utilisateur</label>
-                                <input type="text" class="form-control" value="{{ auth()->user()->nom }}" readonly>
+                                <input type="text" class="form-control" value="{{ $user->username }}" readonly>
                             </div>
                             <button type="button" class="btn btn-warning btn-block" data-toggle="modal" data-target="#changePasswordModal">
                                 <i class="fas fa-key"></i> Changer le mot de passe
@@ -57,6 +75,7 @@
                     </div>
                 </div>
 
+                <!-- Colonne droite: Formulaire et statistiques -->
                 <div class="col-md-8">
                     <!-- Formulaire de modification -->
                     <div class="card card-primary">
@@ -64,7 +83,7 @@
                             <h4><i class="fas fa-edit"></i> Modifier le Profil</h4>
                         </div>
                         <div class="card-body">
-                            <form action="{{ route('user-profile.update',$user->id) }}" method="POST" enctype="multipart/form-data">
+                            <form action="{{ route('user-profile.update', $user->id) }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 @method('PUT')
 
@@ -74,7 +93,7 @@
                                             <label>Nom <span class="text-danger">*</span></label>
                                             <input type="text" name="nom"
                                                    class="form-control @error('nom') is-invalid @enderror"
-                                                   value="{{ old('nom', auth()->user()->nom) }}"
+                                                   value="{{ old('nom', $user->nom) }}"
                                                    placeholder="Votre nom" required>
                                             @error('nom')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -86,7 +105,7 @@
                                             <label>Prénom <span class="text-danger">*</span></label>
                                             <input type="text" name="prenom"
                                                    class="form-control @error('prenom') is-invalid @enderror"
-                                                   value="{{ old('prenom', auth()->user()->prenom) }}"
+                                                   value="{{ old('prenom', $user->prenom) }}"
                                                    placeholder="Votre prénom" required>
                                             @error('prenom')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -101,7 +120,7 @@
                                             <label>Téléphone</label>
                                             <input type="text" name="telephone"
                                                    class="form-control @error('telephone') is-invalid @enderror"
-                                                   value="{{ old('telephone', auth()->user()->telephone) }}"
+                                                   value="{{ old('telephone', $user->telephone) }}"
                                                    placeholder="Ex: +225 01 23 45 67 89">
                                             @error('telephone')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -115,7 +134,7 @@
                                                 <option value="">Sélectionner un poste...</option>
                                                 @foreach($postes as $poste)
                                                     <option value="{{ $poste->id }}"
-                                                            {{ auth()->user()->poste_id == $poste->id ? 'selected' : '' }}>
+                                                            {{ $user->poste_id == $poste->id ? 'selected' : '' }}>
                                                         {{ $poste->intitule }}
                                                     </option>
                                                 @endforeach
@@ -135,7 +154,7 @@
                                                id="photoUpload"
                                                accept="image/jpeg,image/png,image/jpg">
                                         <label class="custom-file-label" for="photoUpload">
-                                            {{ auth()->user()->photo ? basename(auth()->user()->photo) : 'Choisir une image...' }}
+                                            {{ $user->photo ? basename($user->photo) : 'Choisir une image...' }}
                                         </label>
                                         @error('photo')
                                             <div class="invalid-feedback">{{ $message }}</div>
@@ -144,16 +163,35 @@
                                     <small class="text-muted">Formats acceptés: JPG, PNG. Taille max: 2MB</small>
                                 </div>
 
-                                <div class="form-group">
-                                    <label>Rôle</label>
-                                    <input type="text" class="form-control"
-                                           value="{{ auth()->user()->role->name ?? 'Non défini' }}" readonly>
-                                </div>
+                                @if(auth()->user()->hasRole('admin|super-admin'))
+                                    <div class="form-group">
+                                        <label>Rôle</label>
+                                        <select name="role_name" class="form-control @error('role_name') is-invalid @enderror">
+                                            <option value="">Sélectionner un rôle...</option>
+                                            @foreach($roles as $role)
+                                                <option value="{{ $role->name }}"
+                                                        {{ $user->hasRole($role->name) ? 'selected' : '' }}>
+                                                    {{ ucwords(str_replace('-', ' ', $role->name)) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @error('role_name')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                @else
+                                    <div class="form-group">
+                                        <label>Rôle</label>
+                                        <input type="text" class="form-control"
+                                               value="{{ $user->roles->first()?->name ? ucwords(str_replace('-', ' ', $user->roles->first()->name)) : 'Non défini' }}"
+                                               readonly>
+                                    </div>
+                                @endif
 
                                 <div class="form-group">
                                     <label>Créé par</label>
                                     <input type="text" class="form-control"
-                                           value="{{ auth()->user()->creator->prenom ?? 'Système' }}" readonly>
+                                           value="{{ $user->creator->fullName ?? 'Système' }}" readonly>
                                 </div>
 
                                 <div class="row mt-4">
@@ -161,14 +199,14 @@
                                         <div class="form-group">
                                             <label>Date de création</label>
                                             <input type="text" class="form-control"
-                                                   value="{{ auth()->user()->created_at->format('d/m/Y H:i') }}" readonly>
+                                                   value="{{ $user->created_at->format('d/m/Y H:i') }}" readonly>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Dernière modification</label>
                                             <input type="text" class="form-control"
-                                                   value="{{ auth()->user()->updated_at->format('d/m/Y H:i') }}" readonly>
+                                                   value="{{ $user->updated_at->format('d/m/Y H:i') }}" readonly>
                                         </div>
                                     </div>
                                 </div>
@@ -177,7 +215,7 @@
                                     <button type="submit" class="btn btn-primary btn-lg px-5">
                                         <i class="fas fa-save"></i> Mettre à jour
                                     </button>
-                                    <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-lg ml-2">
+                                    <a href="{{ route('user-profile.show', $user->id) }}" class="btn btn-outline-secondary btn-lg ml-2">
                                         <i class="fas fa-times"></i> Annuler
                                     </a>
                                 </div>
@@ -185,19 +223,19 @@
                         </div>
                     </div>
 
-                    <!-- Statistiques -->
+                    <!-- Statistiques de temps -->
                     <div class="row mt-4">
                         <div class="col-md-4">
                             <div class="card card-statistic-1">
                                 <div class="card-icon bg-primary">
-                                    <i class="fas fa-exclamation-circle"></i>
+                                    <i class="fas fa-clock"></i>
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header">
-                                        <h4>Plaintes</h4>
+                                        <h4>Heures ce mois</h4>
                                     </div>
                                     <div class="card-body">
-                                        {{ auth()->user()->plaintes->count() }}
+                                        {{ $statistiques['heures_mois_en_cours'] ?? 0 }}h
                                     </div>
                                 </div>
                             </div>
@@ -205,29 +243,29 @@
                         <div class="col-md-4">
                             <div class="card card-statistic-1">
                                 <div class="card-icon bg-success">
-                                    <i class="fas fa-clipboard-check"></i>
+                                    <i class="fas fa-calendar-check"></i>
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header">
-                                        <h4>Audits Clients</h4>
+                                        <h4>Journées validées</h4>
                                     </div>
                                     <div class="card-body">
-                                        {{ auth()->user()->clientAudits->count() }}
+                                        {{ $statistiques['journees_validees'] ?? 0 }}
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="card card-statistic-1">
-                                <div class="card-icon bg-info">
-                                    <i class="fas fa-gift"></i>
+                                <div class="card-icon bg-warning">
+                                    <i class="fas fa-umbrella-beach"></i>
                                 </div>
                                 <div class="card-wrap">
                                     <div class="card-header">
-                                        <h4>Cadeaux/Invitations</h4>
+                                        <h4>Congés pris</h4>
                                     </div>
                                     <div class="card-body">
-                                        {{ auth()->user()->cadeauInvitations->count() }}
+                                        {{ $statistiques['conges_pris'] ?? 0 }} jours
                                     </div>
                                 </div>
                             </div>
@@ -238,7 +276,7 @@
         </div>
     </section>
 
-        <!-- Modal changement de mot de passe -->
+    <!-- Modal changement de mot de passe -->
     <div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
             <div class="modal-content">
@@ -268,11 +306,11 @@
                                     <label>Mot de passe actuel <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <input type="password" name="current_password" id="current_password"
-                                            class="form-control @error('current_password') is-invalid @enderror" 
+                                            class="form-control @error('current_password') is-invalid @enderror"
                                             required
                                             placeholder="Votre mot de passe actuel">
                                         <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary toggle-password" 
+                                            <button class="btn btn-outline-secondary toggle-password"
                                                     type="button" data-target="current_password">
                                                 <i class="fas fa-eye"></i>
                                             </button>
@@ -283,33 +321,33 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Nouveau mot de passe <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <input type="password" name="new_password" id="new_password"
-                                            class="form-control @error('new_password') is-invalid @enderror" 
+                                            class="form-control @error('new_password') is-invalid @enderror"
                                             required
                                             placeholder="Nouveau mot de passe sécurisé"
                                             onkeyup="checkPasswordStrength()">
                                         <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary toggle-password" 
+                                            <button class="btn btn-outline-secondary toggle-password"
                                                     type="button" data-target="new_password">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- Force du mot de passe -->
                                     <div class="mt-2">
                                         <div class="progress" style="height: 6px;">
-                                            <div id="passwordStrengthBar" class="progress-bar" 
+                                            <div id="passwordStrengthBar" class="progress-bar"
                                                 role="progressbar" style="width: 0%"></div>
                                         </div>
                                         <small id="passwordStrengthText" class="text-muted">Force du mot de passe</small>
                                     </div>
-                                    
+
                                     <!-- Règles de validation -->
                                     <div class="password-rules mt-3">
                                         <small class="text-muted d-block mb-2">Le mot de passe doit contenir :</small>
@@ -360,7 +398,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     @error('new_password')
                                         <div class="invalid-feedback d-block mt-2">{{ $message }}</div>
                                     @enderror
@@ -374,11 +412,11 @@
                                     <label>Confirmer le mot de passe <span class="text-danger">*</span></label>
                                     <div class="input-group">
                                         <input type="password" name="new_password_confirmation" id="new_password_confirmation"
-                                            class="form-control" 
+                                            class="form-control"
                                             required
                                             placeholder="Confirmez le nouveau mot de passe">
                                         <div class="input-group-append">
-                                            <button class="btn btn-outline-secondary toggle-password" 
+                                            <button class="btn btn-outline-secondary toggle-password"
                                                     type="button" data-target="new_password_confirmation">
                                                 <i class="fas fa-eye"></i>
                                             </button>
@@ -394,13 +432,13 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label>Générer un mot de passe sécurisé</label>
                                     <div class="input-group">
-                                        <input type="text" id="generatedPassword" 
-                                            class="form-control" 
+                                        <input type="text" id="generatedPassword"
+                                            class="form-control"
                                             placeholder="Mot de passe généré"
                                             readonly>
                                         <div class="input-group-append">
@@ -413,8 +451,8 @@
                                         </div>
                                     </div>
                                     <small class="text-muted d-block mt-2">
-                                        <i class="fas fa-info-circle"></i> 
-                                        Le mot de passe généré est automatiquement copié dans le champ "Nouveau mot de passe"
+                                        <i class="fas fa-info-circle"></i>
+                                        Le mot de passe généré est automatiquement copié dans les champs
                                     </small>
                                 </div>
                             </div>
@@ -452,6 +490,11 @@
 
         .card-statistic-1 {
             margin-bottom: 0;
+            transition: transform 0.3s;
+        }
+
+        .card-statistic-1:hover {
+            transform: translateY(-5px);
         }
 
         .avatar-placeholder {
@@ -461,18 +504,19 @@
         .custom-file-label::after {
             content: "Parcourir";
         }
-            
-    .password-rules .form-check-label i {
-        font-size: 12px;
-        margin-right: 5px;
-    }
-    .progress-bar {
-        transition: width 0.5s ease;
-    }
-    #passwordMatchText, #passwordMatchSuccess {
-        font-size: 12px;
-    }
 
+        .password-rules .form-check-label i {
+            font-size: 12px;
+            margin-right: 5px;
+        }
+
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+
+        #passwordMatchText, #passwordMatchSuccess {
+            font-size: 12px;
+        }
     </style>
 @endsection
 
@@ -500,22 +544,8 @@
             }
         });
 
-        // Afficher/masquer les mots de passe dans les formulaires principaux
-        $('.password-toggle').on('click', function() {
-            var input = $(this).closest('.input-group').find('input');
-            var icon = $(this).find('i');
-
-            if (input.attr('type') === 'password') {
-                input.attr('type', 'text');
-                icon.removeClass('fa-eye').addClass('fa-eye-slash');
-            } else {
-                input.attr('type', 'password');
-                icon.removeClass('fa-eye-slash').addClass('fa-eye');
-            }
-        });
-
         // ============ GESTION DU MODAL DE MOT DE PASSE ============
-        
+
         // Ouvrir le modal si il y a des erreurs de mot de passe
         @if($errors->has('current_password') || $errors->has('new_password'))
             $('#changePasswordModal').modal('show');
@@ -526,7 +556,7 @@
             const targetId = $(this).data('target');
             const input = $('#' + targetId);
             const icon = $(this).find('i');
-            
+
             if (input.attr('type') === 'password') {
                 input.attr('type', 'text');
                 icon.removeClass('fa-eye').addClass('fa-eye-slash');
@@ -547,11 +577,11 @@
             $('#generatedPassword').val(password);
             $('#new_password').val(password);
             $('#new_password_confirmation').val(password);
-            
+
             // Déclencher les vérifications
             $('#new_password').trigger('keyup');
             $('#new_password_confirmation').trigger('keyup');
-            
+
             // Afficher notification
             showToast('Mot de passe généré et copié!', 'success');
         });
@@ -562,6 +592,16 @@
             if (generatedPassword) {
                 navigator.clipboard.writeText(generatedPassword).then(function() {
                     showToast('Mot de passe copié dans le presse-papier!', 'success');
+                }).catch(function(err) {
+                    console.error('Erreur lors de la copie:', err);
+                    // Fallback pour les anciens navigateurs
+                    const tempInput = document.createElement('input');
+                    tempInput.value = generatedPassword;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    showToast('Mot de passe copié!', 'success');
                 });
             }
         });
@@ -593,7 +633,7 @@
     function checkPasswordMatch() {
         const password = $('#new_password').val();
         const confirmPassword = $('#new_password_confirmation').val();
-        
+
         if (password && confirmPassword) {
             if (password === confirmPassword) {
                 $('#passwordMatchText').addClass('d-none');
@@ -610,18 +650,18 @@
         const length = 16;
         const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
         let password = "";
-        
+
         // Assurer au moins un caractère de chaque type
         password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ".charAt(Math.floor(Math.random() * 26));
         password += "abcdefghijklmnopqrstuvwxyz".charAt(Math.floor(Math.random() * 26));
         password += "0123456789".charAt(Math.floor(Math.random() * 10));
         password += "!@#$%^&*()_+~`|}{[]:;?><,./-=".charAt(Math.floor(Math.random() * 28));
-        
+
         // Remplir le reste
         for (let i = 4; i < length; i++) {
             password += charset.charAt(Math.floor(Math.random() * charset.length));
         }
-        
+
         // Mélanger le mot de passe
         return password.split('').sort(() => Math.random() - 0.5).join('');
     }
@@ -632,10 +672,10 @@
         const newPassword = $('#new_password').val();
         const confirmPassword = $('#new_password_confirmation').val();
         const passwordValid = checkPasswordStrength(newPassword, true);
-        
-        const formValid = currentPassword && newPassword && confirmPassword && 
+
+        const formValid = currentPassword && newPassword && confirmPassword &&
                          (newPassword === confirmPassword) && passwordValid;
-        
+
         $('#submitPasswordBtn').prop('disabled', !formValid);
         return formValid;
     }
@@ -660,10 +700,11 @@
 
         if (updateRules) {
             Object.keys(rules).forEach(rule => {
-                const checkIcon = $(`#rule${capitalizeFirst(rule)}`).siblings('label').find('.fa-check-circle');
-                const timesIcon = $(`#rule${capitalizeFirst(rule)}`).siblings('label').find('.fa-times-circle');
-                const checkbox = $(`#rule${capitalizeFirst(rule)}`);
-                
+                const ruleName = rule.charAt(0).toUpperCase() + rule.slice(1);
+                const checkIcon = $(`#rule${ruleName}`).siblings('label').find('.fa-check-circle');
+                const timesIcon = $(`#rule${ruleName}`).siblings('label').find('.fa-times-circle');
+                const checkbox = $(`#rule${ruleName}`);
+
                 if (rules[rule]) {
                     checkIcon.removeClass('d-none');
                     timesIcon.addClass('d-none');
@@ -684,9 +725,9 @@
         // Mettre à jour la barre de progression
         const progressBar = $('#passwordStrengthBar');
         const strengthText = $('#passwordStrengthText');
-        
+
         progressBar.css('width', strength + '%');
-        
+
         if (strength <= 40) {
             progressBar.removeClass().addClass('progress-bar bg-danger');
             strengthText.removeClass().addClass('text-danger').text('Faible');
@@ -701,7 +742,7 @@
             strengthText.removeClass().addClass('text-success').text('Excellent');
         }
 
-        return strength >= 60; // Minimum 60% pour être acceptable
+        return strength >= 60;
     }
 
     // Réinitialiser les règles de mot de passe
@@ -717,18 +758,18 @@
         $('#new_password').val('');
         $('#new_password_confirmation').val('');
         $('#generatedPassword').val('');
-        
+
         resetPasswordRules();
         checkPasswordStrength('', true);
-        
+
         $('#passwordMatchText').addClass('d-none');
         $('#passwordMatchSuccess').addClass('d-none');
-        
+
         $('#passwordStrengthBar').css('width', '0%').removeClass().addClass('progress-bar');
         $('#passwordStrengthText').text('Force du mot de passe').removeClass().addClass('text-muted');
-        
+
         $('#submitPasswordBtn').prop('disabled', true);
-        
+
         // Réinitialiser les icônes d'œil
         $('.toggle-password i').removeClass('fa-eye-slash').addClass('fa-eye');
         $('.toggle-password').each(function() {
@@ -741,44 +782,37 @@
     function validatePasswordForm(e) {
         const password = $('#new_password').val();
         const confirmPassword = $('#new_password_confirmation').val();
-        
+
         if (password !== confirmPassword) {
             e.preventDefault();
             showToast('Les mots de passe ne correspondent pas!', 'error');
             return false;
         }
-        
+
         if (!checkPasswordStrength(password)) {
             e.preventDefault();
             showToast('Le mot de passe n\'est pas assez sécurisé! Il doit être au moins "Moyen".', 'error');
             return false;
         }
-        
+
         // Désactiver le bouton pour éviter les doubles clics
         $('#submitPasswordBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Mise à jour...');
         return true;
     }
 
-    // Fonction utilitaire pour capitaliser
-    function capitalizeFirst(string) {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-
     // Afficher une notification toast
     function showToast(message, type = 'info') {
-        // Si Toastify est disponible
         if (typeof Toastify !== 'undefined') {
             Toastify({
                 text: message,
                 duration: 3000,
                 gravity: "top",
                 position: "right",
-                backgroundColor: type === 'success' ? "#28a745" : 
-                               type === 'error' ? "#dc3545" : 
-                               type === 'warning' ? "#ffc107" : "#17a2b8",
+                backgroundColor: type === 'success' ? "#28a745" :
+                              type === 'error' ? "#dc3545" :
+                              type === 'warning' ? "#ffc107" : "#17a2b8",
             }).showToast();
         } else {
-            // Fallback simple
             alert(message);
         }
     }

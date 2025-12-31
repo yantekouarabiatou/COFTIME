@@ -5,6 +5,7 @@
 @section('content')
 <section class="section">
     <div class="section-body">
+        <!-- Breadcrumb -->
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card shadow-sm">
@@ -49,7 +50,9 @@
         </div>
 
         <div class="row">
+            <!-- Colonne gauche: Profil utilisateur -->
             <div class="col-lg-4">
+                <!-- Carte profil -->
                 <div class="card card-primary shadow-sm">
                     <div class="card-body text-center py-5">
                         @if($user->photo)
@@ -64,20 +67,16 @@
                             </div>
                         @endif
 
-                        <h4 class="mb-1">{{ $user->nom }}</h4>
+                        <h4 class="mb-1">{{ $user->prenom }} {{ $user->nom }}</h4>
                         <p class="text-muted mb-2">{{ $user->poste?->intitule ?? 'Poste non défini' }}</p>
 
-                        {{-- CORRECTION DE L'AFFICHAGE DU RÔLE ICI --}}
                         <div class="mb-3">
                             <span class="badge badge-lg {{ $user->is_active ? 'badge-success' : 'badge-danger' }}">
                                 {{ $user->is_active ? 'ACTIF' : 'INACTIF' }}
                             </span>
 
                             @php
-                                // Récupération du rôle principal
                                 $role = $user->roles->first();
-
-                                // Tableau de correspondance pour l'affichage
                                 $roleNames = [
                                     'super-admin'            => 'Super Administrateur',
                                     'admin'                  => 'Administrateur',
@@ -87,8 +86,6 @@
                                     'agent'                  => 'Agent de Traitement',
                                     'user'                   => 'Utilisateur Standard',
                                 ];
-
-                                // Définition du libellé à afficher
                                 $displayRole = 'Aucun rôle';
                                 if ($role) {
                                     $displayRole = $roleNames[$role->name] ?? ucwords(str_replace('-', ' ', $role->name));
@@ -99,7 +96,6 @@
                                 {{ $displayRole }}
                             </span>
                         </div>
-                        {{-- FIN CORRECTION --}}
 
                         @if($user->photo)
                             <a href="{{ route('user-profile.download-photo', $user->id) }}"
@@ -117,12 +113,13 @@
                             </div>
                             <div class="col">
                                 <div class="text-muted">Email</div>
-                                <strong class="d-block">{{ $user->email }}</strong>
+                                <strong class="d-block text-truncate" style="max-width: 150px;">{{ $user->email }}</strong>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Informations du compte -->
                 <div class="card card-primary mt-4">
                     <div class="card-header">
                         <h5><i class="fas fa-user-circle mr-2"></i>Informations du compte</h5>
@@ -138,7 +135,7 @@
                         </div>
                         <div class="list-group-item d-flex justify-content-between px-3">
                             <span class="text-muted">Créé par</span>
-                            <span>{{ $user->nom ?? 'Système' }}</span>
+                            <span>{{ $user->creator->fullName ?? 'Système' }}</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between px-3">
                             <span class="text-muted">Dernière modification</span>
@@ -146,168 +143,347 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-lg-8">
-                <div class="row mb-4">
-                    <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
-                        <div class="card card-statistic-2">
-                            <div class="card-icon bg-danger">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <div class="card-wrap">
-                                <div class="card-header"><h6>Plaintes</h6></div>
-                                <div class="card-body h4">{{ $statistiques['total_plaintes'] }}</div>
-                            </div>
+                <!-- Dernière activité -->
+                @if($statistiques['derniere_entree'])
+                <div class="card card-primary mt-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-clock mr-2"></i>Dernière saisie</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center">
+                            <h4 class="text-info mb-2">
+                                {{ $statistiques['derniere_entree']->jour->format('d/m/Y') }}
+                            </h4>
+                            <p class="mb-1">
+                                <strong>{{ $statistiques['derniere_entree']->heures_reelles }}h</strong>
+                                / {{ $statistiques['derniere_entree']->heures_theoriques }}h
+                            </p>
+                            <span class="badge badge-{{ $statistiques['derniere_entree']->statut == 'validé' ? 'success' : ($statistiques['derniere_entree']->statut == 'soumis' ? 'info' : 'warning') }}">
+                                {{ ucfirst($statistiques['derniere_entree']->statut) }}
+                            </span>
                         </div>
                     </div>
+                </div>
+                @endif
+            </div>
+
+            <!-- Colonne droite: Statistiques et activités -->
+            <div class="col-lg-8">
+                <!-- Statistiques de temps -->
+                <div class="row mb-4">
+                    <!-- Heures du mois -->
                     <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
                         <div class="card card-statistic-2">
                             <div class="card-icon bg-primary">
-                                <i class="fas fa-building"></i>
+                                <i class="fas fa-clock"></i>
                             </div>
                             <div class="card-wrap">
-                                <div class="card-header"><h6>Audits Clients</h6></div>
-                                <div class="card-body h4">{{ $statistiques['total_audits'] }}</div>
+                                <div class="card-header"><h6>Heures ce mois</h6></div>
+                                <div class="card-body h4">{{ $statistiques['heures_mois_en_cours'] }}h</div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Taux de réalisation -->
                     <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
                         <div class="card card-statistic-2">
-                            <div class="card-icon bg-info">
-                                <i class="fas fa-gift"></i>
+                            <div class="card-icon {{ $statistiques['taux_realisation'] >= 100 ? 'bg-success' : 'bg-warning' }}">
+                                <i class="fas fa-percentage"></i>
                             </div>
                             <div class="card-wrap">
-                                <div class="card-header"><h6>Cadeaux/Invitations</h6></div>
-                                <div class="card-body h4">{{ $statistiques['total_cadeaux'] }}</div>
+                                <div class="card-header"><h6>Taux réalisation</h6></div>
+                                <div class="card-body h4">{{ $statistiques['taux_realisation'] }}%</div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Écart heures -->
                     <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
                         <div class="card card-statistic-2">
-                            <div class="card-icon bg-warning">
+                            <div class="card-icon {{ $statistiques['ecart_heures'] >= 0 ? 'bg-success' : 'bg-danger' }}">
                                 <i class="fas fa-balance-scale"></i>
                             </div>
                             <div class="card-wrap">
-                                <div class="card-header"><h6>Conflits d'Intérêt</h6></div>
-                                <div class="card-body h4">{{ $statistiques['total_interets'] }}</div>
+                                <div class="card-header"><h6>Écart heures</h6></div>
+                                <div class="card-body h4">
+                                    {{ $statistiques['ecart_heures'] > 0 ? '+' : '' }}{{ $statistiques['ecart_heures'] }}h
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Journées validées -->
                     <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
                         <div class="card card-statistic-2">
                             <div class="card-icon bg-success">
-                                <i class="fas fa-user-shield"></i>
+                                <i class="fas fa-check-circle"></i>
                             </div>
                             <div class="card-wrap">
-                                <div class="card-header"><h7><strong>Indépendance</strong></h7></div>
-                                <div class="card-body h4">{{ $statistiques['total_independances'] }}</div>
+                                <div class="card-header"><h6>Journées validées</h6></div>
+                                <div class="card-body h4">{{ $statistiques['journees_validees'] }}</div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Journées en attente -->
                     <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
                         <div class="card card-statistic-2">
-                            <div class="card-icon bg-dark">
-                                <i class="fas fa-chart-bar"></i>
+                            <div class="card-icon bg-info">
+                                <i class="fas fa-hourglass-half"></i>
                             </div>
                             <div class="card-wrap">
-                                <div class="card-header"><h6>Total Activités</h6></div>
-                                <div class="card-body h4">{{ array_sum($statistiques) }}</div>
+                                <div class="card-header"><h6>En attente</h6></div>
+                                <div class="card-body h4">{{ $statistiques['journees_en_attente'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Congés pris -->
+                    <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
+                        <div class="card card-statistic-2">
+                            <div class="card-icon bg-warning">
+                                <i class="fas fa-umbrella-beach"></i>
+                            </div>
+                            <div class="card-wrap">
+                                <div class="card-header"><h6>Congés pris</h6></div>
+                                <div class="card-body h4">{{ $statistiques['conges_pris'] }} jours</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total saisies -->
+                    <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
+                        <div class="card card-statistic-2">
+                            <div class="card-icon bg-secondary">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="card-wrap">
+                                <div class="card-header"><h6>Total journées</h6></div>
+                                <div class="card-body h4">{{ $statistiques['total_daily_entries'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total TimeEntries -->
+                    <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
+                        <div class="card card-statistic-2">
+                            <div class="card-icon bg-info">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="card-wrap">
+                                <div class="card-header"><h6>Saisies temps</h6></div>
+                                <div class="card-body h4">{{ $statistiques['total_time_entries'] }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Congés en attente -->
+                    <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
+                        <div class="card card-statistic-2">
+                            <div class="card-icon bg-danger">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                            <div class="card-wrap">
+                                <div class="card-header"><h6>Congés en attente</h6></div>
+                                <div class="card-body h4">{{ $statistiques['conges_en_attente'] }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Activités récentes -->
                 <div class="card">
                     <div class="card-header">
-                        <h4><i class="fas fa-history mr-2"></i>Dernières activités</h4>
+                        <h4><i class="fas fa-history mr-2"></i>Activités récentes</h4>
                     </div>
                     <div class="card-body">
                         <ul class="nav nav-tabs" id="activityTab" role="tablist">
                             <li class="nav-item">
-                                <a class="nav-link active" id="plaintes-tab" data-toggle="tab" href="#plaintes" role="tab">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i> Plaintes
-                                    <span class="badge badge-danger ml-2">{{ $user->plaintes->count() }}</span>
+                                <a class="nav-link active" id="daily-tab" data-toggle="tab" href="#daily" role="tab">
+                                    <i class="fas fa-calendar-day mr-1"></i> Journées
+                                    <span class="badge badge-primary ml-2">{{ $user->dailyEntries->count() }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" id="audits-tab" data-toggle="tab" href="#audits" role="tab">
-                                    <i class="fas fa-building mr-1"></i> Audits
-                                    <span class="badge badge-primary ml-2">{{ $user->clientAudits->count() }}</span>
+                                <a class="nav-link" id="time-tab" data-toggle="tab" href="#time" role="tab">
+                                    <i class="fas fa-clock mr-1"></i> Saisies temps
+                                    <span class="badge badge-info ml-2">{{ $user->timeEntries->count() }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" id="cadeaux-tab" data-toggle="tab" href="#cadeaux" role="tab">
-                                    <i class="fas fa-gift mr-1"></i> Cadeaux
-                                    <span class="badge badge-info ml-2">{{ $user->cadeauInvitations->count() }}</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="interets-tab" data-toggle="tab" href="#interets" role="tab">
-                                    <i class="fas fa-balance-scale mr-1"></i> Conflits
-                                    <span class="badge badge-warning ml-2">{{ $user->interets->count() }}</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="independances-tab" data-toggle="tab" href="#independances" role="tab">
-                                    <i class="fas fa-user-shield mr-1"></i> Indépendances
-                                    <span class="badge badge-success ml-2">{{ $user->independances->count() }}</span>
+                                <a class="nav-link" id="conges-tab" data-toggle="tab" href="#conges" role="tab">
+                                    <i class="fas fa-umbrella-beach mr-1"></i> Congés
+                                    <span class="badge badge-warning ml-2">{{ $user->conges->count() }}</span>
                                 </a>
                             </li>
                         </ul>
 
                         <div class="tab-content mt-4">
-                            <div class="tab-pane fade show active" id="plaintes" role="tabpanel">
-                                @include('profile.partials.activities-table', [
-                                    'items' => $user->plaintes,
-                                    'type' => 'plainte'
-                                ])
+                            <!-- Onglet Journées -->
+                            <div class="tab-pane fade show active" id="daily" role="tabpanel">
+                                @if($user->dailyEntries->count() > 0)
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Heures réelles</th>
+                                                    <th>Heures théoriques</th>
+                                                    <th>Écart</th>
+                                                    <th>Statut</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($user->dailyEntries as $entry)
+                                                    <tr>
+                                                        <td>{{ $entry->jour->format('d/m/Y') }}</td>
+                                                        <td><strong>{{ $entry->heures_reelles }}h</strong></td>
+                                                        <td>{{ $entry->heures_theoriques }}h</td>
+                                                        <td>
+                                                            <span class="badge badge-{{ $entry->ecart >= 0 ? 'success' : 'danger' }}">
+                                                                {{ $entry->ecart > 0 ? '+' : '' }}{{ $entry->ecart }}h
+                                                            </span>
+                                                        </td>
+                                                        <td>{!! $entry->statut_badge !!}</td>
+                                                        <td>
+                                                            <a href="{{ route('daily-entries.show', $entry->id) }}"
+                                                               class="btn btn-sm btn-info" title="Voir détails">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                                        <p>Aucune journée enregistrée</p>
+                                    </div>
+                                @endif
                             </div>
 
-                            <div class="tab-pane fade" id="audits" role="tabpanel">
-                                @include('profile.partials.activities-table', [
-                                    'items' => $user->clientAudits,
-                                    'type' => 'audit'
-                                ])
+                            <!-- Onglet Saisies temps -->
+                            <div class="tab-pane fade" id="time" role="tabpanel">
+                                @if($user->timeEntries->count() > 0)
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Dossier</th>
+                                                    <th>Heures</th>
+                                                    <th>Plage horaire</th>
+                                                    <th>Travaux</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($user->timeEntries as $timeEntry)
+                                                    <tr>
+                                                        <td>{{ $timeEntry->dailyEntry->jour->format('d/m/Y') }}</td>
+                                                        <td>
+                                                            @if($timeEntry->dossier)
+                                                                <a href="{{ route('dossiers.show', $timeEntry->dossier_id) }}">
+                                                                    {{ $timeEntry->dossier->nom }}
+                                                                </a>
+                                                            @else
+                                                                <span class="text-muted">-</span>
+                                                            @endif
+                                                        </td>
+                                                        <td><strong>{{ $timeEntry->heures_reelles }}h</strong></td>
+                                                        <td>{{ $timeEntry->plage }}</td>
+                                                        <td>
+                                                            <small>{{ Str::limit($timeEntry->travaux, 50) }}</small>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-clock fa-3x mb-3"></i>
+                                        <p>Aucune saisie de temps enregistrée</p>
+                                    </div>
+                                @endif
                             </div>
 
-                            <div class="tab-pane fade" id="cadeaux" role="tabpanel">
-                                @include('profile.partials.activities-table', [
-                                    'items' => $user->cadeauInvitations,
-                                    'type' => 'cadeau'
-                                ])
-                            </div>
-
-                            <div class="tab-pane fade" id="interets" role="tabpanel">
-                                @include('profile.partials.activities-table', [
-                                    'items' => $user->interets,
-                                    'type' => 'interet'
-                                ])
-                            </div>
-
-                            <div class="tab-pane fade" id="independances" role="tabpanel">
-                                @include('profile.partials.activities-table', [
-                                    'items' => $user->independances,
-                                    'type' => 'independance'
-                                ])
+                            <!-- Onglet Congés -->
+                            <div class="tab-pane fade" id="conges" role="tabpanel">
+                                @if($user->conges->count() > 0)
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Type</th>
+                                                    <th>Date début</th>
+                                                    <th>Date fin</th>
+                                                    <th>Nombre de jours</th>
+                                                    <th>Statut</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($user->conges as $conge)
+                                                    <tr>
+                                                        <td>{{ ucfirst($conge->type_conge) }}</td>
+                                                        <td>{{ $conge->date_debut->format('d/m/Y') }}</td>
+                                                        <td>{{ $conge->date_fin->format('d/m/Y') }}</td>
+                                                        <td><strong>{{ $conge->nombre_jours }}</strong></td>
+                                                        <td>
+                                                            <span class="badge badge-{{ $conge->statut == 'approuvé' ? 'success' : ($conge->statut == 'en_attente' ? 'warning' : 'success') }}">
+                                                                {{ ucfirst($conge->statut) }}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <a href="{{ route('conges.show', $conge->id) }}"
+                                                               class="btn btn-sm btn-info" title="Voir détails">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <div class="text-center text-muted py-4">
+                                        <i class="fas fa-umbrella-beach fa-3x mb-3"></i>
+                                        <p>Aucun congé enregistré</p>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Administration -->
                 <div class="card mt-4">
                     <div class="card-header bg-dark text-white">
                         <h5><i class="fas fa-user-cog mr-2"></i>Administration</h5>
                     </div>
                     <div class="card-body">
                         <div class="d-flex flex-wrap gap-2">
-                               <a href="{{ route('user-profile.edit',$user->id) }}" class="btn btn-primary">
-                                    <i class="fas fa-edit"></i> Éditer mon profil
+                            <a href="{{ route('user-profile.edit', $user->id) }}" class="btn btn-primary">
+                                <i class="fas fa-edit"></i> Éditer le profil
+                            </a>
+
+                            @if(auth()->user()->hasRole('admin|super-admin'))
+                                <a href="{{ route('user-profile.export-temps', ['id' => $user->id, 'format' => 'pdf']) }}"
+                                   class="btn btn-danger">
+                                    <i class="fas fa-file-pdf"></i> Export PDF
                                 </a>
+                                <a href="{{ route('user-profile.export-temps', ['id' => $user->id, 'format' => 'excel']) }}"
+                                   class="btn btn-success">
+                                    <i class="fas fa-file-excel"></i> Export Excel
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -323,7 +499,7 @@
             $(this).tab('show');
         });
 
-        // Animation des cartes statistiques
+        // Animation des cartes statistiques au survol
         $('.card-statistic-2').hover(
             function() {
                 $(this).addClass('shadow-lg');
@@ -335,232 +511,54 @@
 
         // Initialisation des tooltips
         $('[data-toggle="tooltip"]').tooltip();
-    });
 
-    // Gestion des erreurs spécifiques au modal
-    @if($errors->has('current_password') || $errors->has('new_password'))
-        $('#changePasswordModal').modal('show');
-    @endif
-
-    // Toggle afficher/masquer mot de passe
-    $('.toggle-password').click(function() {
-        const targetId = $(this).data('target');
-        const input = $('#' + targetId);
-        const icon = $(this).find('i');
-
-        if (input.attr('type') === 'password') {
-            input.attr('type', 'text');
-            icon.removeClass('fa-eye').addClass('fa-eye-slash');
-        } else {
-            input.attr('type', 'password');
-            icon.removeClass('fa-eye-slash').addClass('fa-eye');
-        }
-    });
-
-    // Vérification de la correspondance des mots de passe
-    $('#new_password, #new_password_confirmation').on('keyup', function() {
-        const password = $('#new_password').val();
-        const confirmPassword = $('#new_password_confirmation').val();
-
-        if (password && confirmPassword) {
-            if (password === confirmPassword) {
-                $('#passwordMatchText').addClass('d-none');
-                $('#passwordMatchSuccess').removeClass('d-none');
-            } else {
-                $('#passwordMatchText').removeClass('d-none');
-                $('#passwordMatchSuccess').addClass('d-none');
+        // Animation du pourcentage de réalisation
+        const tauxElement = $('.card-statistic-2 .h4:contains("%")');
+        if (tauxElement.length > 0) {
+            const taux = parseFloat(tauxElement.text());
+            if (taux >= 100) {
+                tauxElement.closest('.card-statistic-2').addClass('border-success');
+            } else if (taux >= 80) {
+                tauxElement.closest('.card-statistic-2').addClass('border-warning');
             }
         }
-
-        checkFormValidity();
     });
-
-    // Générer un mot de passe sécurisé
-    $('#generatePassword').click(function() {
-        const password = generateSecurePassword();
-        $('#generatedPassword').val(password);
-        $('#new_password').val(password);
-        $('#new_password_confirmation').val(password);
-
-        // Déclencher les vérifications
-        $('#new_password').trigger('keyup');
-        $('#new_password_confirmation').trigger('keyup');
-
-        // Afficher le succès
-        showToast('Mot de passe généré et copié!', 'success');
-    });
-
-    // Copier le mot de passe généré
-    $('#copyPassword').click(function() {
-        const generatedPassword = $('#generatedPassword').val();
-        if (generatedPassword) {
-            navigator.clipboard.writeText(generatedPassword).then(function() {
-                showToast('Mot de passe copié!', 'success');
-            });
-        }
-    });
-
-    // Validation du formulaire
-    function checkFormValidity() {
-        const currentPassword = $('#current_password').val();
-        const newPassword = $('#new_password').val();
-        const confirmPassword = $('#new_password_confirmation').val();
-        const passwordValid = checkPasswordStrength(newPassword, true);
-
-        const formValid = currentPassword && newPassword && confirmPassword &&
-                          (newPassword === confirmPassword) && passwordValid;
-
-        $('#submitPasswordBtn').prop('disabled', !formValid);
-    }
-
-    $('#current_password, #new_password, #new_password_confirmation').on('keyup', checkFormValidity);
-
-function generateSecurePassword() {
-    const length = 16;
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=";
-    let password = "";
-
-    // Assurer au moins un caractère de chaque type
-    password += "ABCDEFGHIJKLMNOPQRSTUVWXYZ".charAt(Math.floor(Math.random() * 26));
-    password += "abcdefghijklmnopqrstuvwxyz".charAt(Math.floor(Math.random() * 26));
-    password += "0123456789".charAt(Math.floor(Math.random() * 10));
-    password += "!@#$%^&*()_+~`|}{[]:;?><,./-=".charAt(Math.floor(Math.random() * 28));
-
-    // Remplir le reste
-    for (let i = 4; i < length; i++) {
-        password += charset.charAt(Math.floor(Math.random() * charset.length));
-    }
-
-    // Mélanger le mot de passe
-    return password.split('').sort(() => Math.random() - 0.5).join('');
-}
-
-function checkPasswordStrength(password, updateRules = false) {
-    if (!password) {
-        $('#passwordStrengthBar').css('width', '0%').removeClass().addClass('progress-bar');
-        $('#passwordStrengthText').text('Force du mot de passe').removeClass().addClass('text-muted');
-        if (updateRules) resetPasswordRules();
-        return false;
-    }
-
-    let strength = 0;
-    const rules = {
-        length: password.length >= 8,
-        uppercase: /[A-Z]/.test(password),
-        lowercase: /[a-z]/.test(password),
-        number: /[0-9]/.test(password),
-        special: /[^A-Za-z0-9]/.test(password)
-    };
-
-    if (updateRules) {
-        Object.keys(rules).forEach(rule => {
-            const checkIcon = $(`#rule${capitalizeFirst(rule)}`).siblings('label').find('.fa-check-circle');
-            const timesIcon = $(`#rule${capitalizeFirst(rule)}`).siblings('label').find('.fa-times-circle');
-            const checkbox = $(`#rule${capitalizeFirst(rule)}`);
-
-            if (rules[rule]) {
-                checkIcon.removeClass('d-none');
-                timesIcon.addClass('d-none');
-                checkbox.prop('checked', true);
-            } else {
-                checkIcon.addClass('d-none');
-                timesIcon.removeClass('d-none');
-                checkbox.prop('checked', false);
-            }
-        });
-    }
-
-    // Calcul du score
-    Object.values(rules).forEach(isValid => {
-        if (isValid) strength += 20;
-    });
-
-    // Mettre à jour la barre de progression
-    const progressBar = $('#passwordStrengthBar');
-    const strengthText = $('#passwordStrengthText');
-
-    progressBar.css('width', strength + '%');
-
-    if (strength <= 40) {
-        progressBar.removeClass().addClass('progress-bar bg-danger');
-        strengthText.removeClass().addClass('text-danger').text('Faible');
-    } else if (strength <= 60) {
-        progressBar.removeClass().addClass('progress-bar bg-warning');
-        strengthText.removeClass().addClass('text-warning').text('Moyen');
-    } else if (strength <= 80) {
-        progressBar.removeClass().addClass('progress-bar bg-info');
-        strengthText.removeClass().addClass('text-info').text('Bon');
-    } else {
-        progressBar.removeClass().addClass('progress-bar bg-success');
-        strengthText.removeClass().addClass('text-success').text('Excellent');
-    }
-
-    return strength >= 60; // Minimum 60% pour être acceptable
-}
-
-function resetPasswordRules() {
-    $('.password-rules .fa-check-circle').addClass('d-none');
-    $('.password-rules .fa-times-circle').removeClass('d-none');
-    $('.password-rules input[type="checkbox"]').prop('checked', false);
-}
-
-function capitalizeFirst(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-function showToast(message, type = 'info') {
-    // Utilisez votre système de toast existant ou créez-en un simple
-    Toastify({
-        text: message,
-        duration: 3000,
-        gravity: "top",
-        position: "right",
-        backgroundColor: type === 'success' ? "#28a745" : type === 'error' ? "#dc3545" : "#17a2b8",
-    }).showToast();
-}
-
-// Validation côté client supplémentaire
-$('#changePasswordForm').on('submit', function(e) {
-    const password = $('#new_password').val();
-    const confirmPassword = $('#new_password_confirmation').val();
-
-    if (password !== confirmPassword) {
-        e.preventDefault();
-        alert('Les mots de passe ne correspondent pas!');
-        return false;
-    }
-
-    if (!checkPasswordStrength(password)) {
-        e.preventDefault();
-        alert('Le mot de passe n\'est pas assez sécurisé!');
-        return false;
-    }
-
-    // Désactiver le bouton pour éviter les doubles clics
-    $('#submitPasswordBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Mise à jour...');
-});
 </script>
 @endsection
 
 @section('styles')
 <style>
     .card-statistic-2 {
-        transition: transform 0.3s;
+        transition: transform 0.3s, box-shadow 0.3s;
     }
+
     .card-statistic-2:hover {
         transform: translateY(-5px);
     }
+
     .tab-content {
         min-height: 300px;
     }
-    .avatar-placeholder {
-        width: 160px;
-        height: 160px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+
+    .badge-lg {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .gap-2 {
+        gap: 0.5rem;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .border-success {
+        border-left: 4px solid #28a745 !important;
+    }
+
+    .border-warning {
+        border-left: 4px solid #ffc107 !important;
     }
 </style>
 @endsection

@@ -239,16 +239,21 @@
 
                     <div class="row">
                         <div class="col-md-6">
+                           <div class="form-group">
+                        <label>Statut <span class="text-danger">*</span></label>
+                        <select name="statut" class="form-control" required>
+                            <option value="soumis" {{ $dailyEntry->statut == 'soumis' ? 'selected' : '' }}>Soumis</option>
+                            <option value="validé" {{ $dailyEntry->statut == 'validé' ? 'selected' : '' }}>Validé</option>
+                            <option value="refusé" {{ $dailyEntry->statut == 'refusé' ? 'selected' : '' }}>Refusé</option>
+                        </select>
+                            </div>
+                        @if($dailyEntry->statut)
+                            <input type="hidden" name="statut" value="{{ $dailyEntry->statut }}">
                             <div class="form-group">
                                 <label>Statut</label>
-                                <select name="statut" class="form-control">
-                                    <option value="ouvert">Ouvert</option>
-                                    <option value="en_cours" selected>En cours</option>
-                                    <option value="suspendu">Suspendu</option>
-                                    <option value="cloture">Clôturé</option>
-                                    <option value="archive">Archivé</option>
-                                </select>
+                                <input type="text" class="form-control" value="{{ ucfirst($dailyEntry->statut) }}" readonly>
                             </div>
+                        @endif
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">

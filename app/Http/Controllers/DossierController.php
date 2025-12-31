@@ -6,48 +6,31 @@ use App\Models\Dossier;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\DataTables\DossiersDataTable;
 
 class DossierController extends Controller
 {
-    public function index(Request $request)
+    public function index(DossiersDataTable $dataTable)
     {
-        $query = Dossier::with('client')->latest();
+        // Utilise les scopes du modèle → tout en SQL, rapide et sans erreur
+        $totalDossiers      = Dossier::count();
 
-        // Recherche
-        if ($request->has('search')) {
-            $query->search($request->search);
-        }
+        $dossiersEnCours    = Dossier::enCours()->count();           // ouvert + en_cours
 
-        // Filtres
-        if ($request->has('statut')) {
-            if ($request->statut == 'en_retard') {
-                $query->enRetard();
-            } else {
-                $query->where('statut', $request->statut);
-            }
-        }
+        $dossiersEnRetard   = Dossier::enRetard()->count();         // ton scope parfait !
 
-        if ($request->has('type')) {
-            $query->parType($request->type);
-        }
+        $dossiersClotures   = Dossier::cloture()->count();          // statut = 'cloture'
 
-        $dossiers = $query->paginate(20);
+        // Si tu veux aussi les archivés séparément (optionnel)
+        // $dossiersArchives = Dossier::where('statut', 'archive')->count();
 
-        // Statistiques pour la vue
-        $totalDossiers = Dossier::count();
-        $dossiersEnCours = Dossier::enCours()->count();
-        $dossiersEnRetard = Dossier::enRetard()->count();
-        $dossiersClotures = Dossier::cloture()->count();
-
-        return view('pages.dossiers.index', compact(
-            'dossiers',
+        return $dataTable->render('pages.dossiers.index', compact(
             'totalDossiers',
             'dossiersEnCours',
             'dossiersEnRetard',
             'dossiersClotures'
         ));
     }
-
     public function create()
     {
         $clients = Client::whereIn('statut', ['actif', 'prospect'])->get();

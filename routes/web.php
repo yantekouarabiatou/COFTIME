@@ -102,6 +102,9 @@ Route::middleware(['auth'])->group(function () {
             ->name('admin.roles.permissions.update');
     });
 
+    Route::get('/daily-entries/export', [DailyEntryController::class, 'export'])
+     ->name('daily-entries.export');
+
     Route::get('/dashboard/data', [App\Http\Controllers\DashboardController::class, 'data'])->name('dashboard.data')->middleware('auth');
     Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
 
@@ -208,9 +211,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/export/pdf', [ClientController::class, 'exportPdf'])->name('export.pdf');
     });
 
-    Route::get('/daily-entries/export', [DailyEntryController::class, 'export'])
-        ->name('daily-entries.export');
+    Route::get('/user-profile/export-temps/{id}/{format}', [UserProfileController::class, 'exportTemps'])->name('user-profile.export-temps');
 
+
+
+    // Export unique (PDF d'une feuille individuelle) - depuis le bouton "Voir"
+    Route::get('/daily-entries/{dailyEntry}/pdf', [DailyEntryController::class, 'pdf'])
+        ->name('daily-entries.pdf');
+
+  
     Route::prefix('settings')->group(function () {
         // Affiche les paramètres
         Route::get('/', [CompanySettingController::class, 'show'])->name('settings.show');

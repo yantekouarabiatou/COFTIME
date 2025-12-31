@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class Conge extends Model
 {
@@ -31,5 +32,14 @@ class Conge extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+    public function getNombreJoursAttribute()
+    {
+        if ($this->date_debut && $this->date_fin) {
+            $start = Carbon::parse($this->date_debut);
+            $end = Carbon::parse($this->date_fin);
+            return $start->diffInDays($end) + 1;
+        }
+        return 0;
     }
 }
