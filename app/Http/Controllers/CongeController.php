@@ -85,15 +85,29 @@ class CongeController extends Controller
      */
     public function show(Conge $conge)
     {
-        //
+        // Sécurité : seul le propriétaire peut voir son congé
+        if ($conge->user_id !== Auth::id()) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        // Charger la relation user (utile plus tard)
+        $conge->load('user');
+
+        return view('pages.conges.show', compact('conge'));
     }
+
 
     /**
      * Show the form for editing the specified resource.
      */
     public function edit(Conge $conge)
     {
-        //
+        // Sécurité : seul le propriétaire peut modifier son congé
+        if ($conge->user_id !== Auth::id()) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        return view('pages.conges.edit', compact('conge'));
     }
 
     /**
@@ -101,7 +115,44 @@ class CongeController extends Controller
      */
     public function update(Request $request, Conge $conge)
     {
-        //
+        // Sécurité
+        if ($conge->user_id !== Auth::id()) {
+            abort(403, 'Accès non autorisé');
+        }
+
+        try {
+            // Validation
+            $request->validate([
+                'type_conge' => 'required|in:MALADIE,MATERNITE,REMUNERE,NON REMUNERE',
+                'date_debut' => 'required|date',
+                'date_fin'   => 'required|date|after_or_equal:date_debut',
+            ], [
+                'type_conge.required' => 'Le type de congé est obligatoire.',
+                'type_conge.in' => 'Type de congé invalide.',
+                'date_debut.required' => 'La date de début est obligatoire.',
+                'date_fin.required' => 'La date de fin est obligatoire.',
+                'date_fin.after_or_equal' => 'La date de fin doit être supérieure ou égale à la date de début.',
+            ]);
+
+            // Mise à jour
+            $conge->update([
+                'type_conge' => $request->type_conge,
+                'date_debut' => $request->date_debut,
+                'date_fin'   => $request->date_fin,
+            ]);
+
+            // SweetAlert succès
+            Alert::success('Succès', 'Le congé a été modifié avec succès.');
+
+            return redirect()->route('conges.index');
+
+        } catch (Exception $e) {
+
+            // SweetAlert erreur
+            Alert::error('Erreur', 'Une erreur est survenue lors de la modification du congé.');
+
+            return back()->withInput();
+        }
     }
 
     /**
@@ -109,6 +160,23 @@ class CongeController extends Controller
      */
     public function destroy(Conge $conge)
     {
-        //
+        try {
+            // Sécurité : admin OU propriétaire
+            if (!Auth::user()->hasRole('admin') && $conge->user_id !== Auth::id()) {
+                abort(403, 'Accès non autorisé');
+            }
+
+            $conge->delete();
+
+            Alert::success('Succès', 'Le congé a été supprimé avec succès.');
+
+            return redirect()->route('conges.index');
+
+        } catch (\Exception $e) {
+
+            Alert::error('Erreur', 'Une erreur est survenue lors de la suppression du congé.');
+
+            return back();
+        }
     }
 }

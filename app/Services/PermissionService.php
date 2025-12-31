@@ -24,18 +24,18 @@ class PermissionService
         return [
             'utilisateurs'          => 'Gestion des Utilisateurs',
             'rôles'                 => 'Rôles et Permissions (Système)',
-            'plaintes'              => 'Gestion des Plaintes',
-            'clients_audit'         => 'Clients Audit',
-            'cadeaux_invitations'   => 'Cadeaux et Invitations',
-            'independances'         => 'Déclarations d\'Indépendance',
-            'assignations'          => 'Assignations de Missions',
+            'Clients'               => 'Gestion des Clients',
+            'Dossiers'              => 'Gestion des Dossiers',
+            'Temps'                 => 'Gestion du Temps',
+            'Congés'                => 'Gestion des Congés',
             'postes'                => 'Gestion des Postes',
-            'interets'              => 'Conflits d\'Intérêts',
             'statistiques'          => 'Statistiques et Rapports',
             'paramètres'            => 'Paramètres Système',
             'médias'                => 'Médias et Documents',
             'dashboard'             => 'Tableaux de Bord',
-            'rôles_permissions'     => 'Gestion des Permissions Méta'
+            'rôles_permissions'     => 'Gestion des Permissions Méta',
+            'Logs'                  => 'Gestion des Logs Système',
+            'notifications'         => 'Gestion des Notifications',
         ];
     }
 

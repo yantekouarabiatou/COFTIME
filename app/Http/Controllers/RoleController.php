@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
@@ -23,7 +24,8 @@ class RoleController extends Controller
         // ET on ajoute un attribut 'users_custom_count' qui compte via la colonne role_id
         $roles = Role::with('permissions')
             ->addSelect([
-                'users_custom_count' => User::selectRaw('count(*)')
+                'users_custom_count' => DB::table('model_has_roles')
+                    ->selectRaw('count(*)')
                     ->whereColumn('role_id', 'roles.id')
             ])
             ->get();
