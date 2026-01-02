@@ -106,7 +106,7 @@ class LogActivite extends Model
             $this->loggable instanceof \App\Models\Client     => route('clients.show', $this->loggable),
             $this->loggable instanceof \App\Models\Dossier    => route('dossiers.show', $this->loggable),
             $this->loggable instanceof \App\Models\DailyEntry => route('daily-entries.show', $this->loggable),
-            $this->loggable instanceof \App\Models\TimeEntry  => route('time-entries.show', $this->loggable),
+            $this->loggable instanceof \App\Models\TimeEntry  => route('daily-entries.show', $this->loggable),
             $this->loggable instanceof \App\Models\Conge      => route('conges.show', $this->loggable),
             $this->loggable instanceof \App\Models\User       => route('users.show', $this->loggable),
             default                                           => null,
