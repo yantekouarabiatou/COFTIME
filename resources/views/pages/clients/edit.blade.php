@@ -38,9 +38,14 @@
                             <div class="text-center mb-4">
                                 <div class="form-group">
                                     <label>Logo actuel</label><br>
-                                    <img src="{{ $client->logo_url }}" alt="Logo {{ $client->nom }}"
-                                         class="rounded-circle border" width="120" height="120"
-                                         style="object-fit: cover; border: 3px solid #f0f0f0;">
+                                    @if($client->logo)
+                                        <div class="mr-3">
+                                            <img src="{{ asset('storage/' . $client->logo) }}"
+                                                    alt="Logo {{ $client->nom }}"
+                                                    class="img-fluid rounded-circle border" width="120" height="120"
+                                                    style="object-fit: cover; border: 3px solid #f0f0f0;">
+                                        </div>
+                                    @endif
                                     @if($client->logo)
                                         <div class="mt-2">
                                             <a href="{{ route('clients.logo.download', $client) }}"

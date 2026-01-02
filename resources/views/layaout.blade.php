@@ -175,9 +175,9 @@
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-wrapper position-relative">
                                         @if($user->photo)
-                                            <img src="{{ asset('storage/' . $user->photo) }}" alt="Photo de {{ $user->nom }}"
-                                                class="rounded-circle mb-3 shadow"
-                                                style="width: 160px; height: 160px; object-fit: cover;">
+                                                <img alt="image" src="{{ asset('storage/' . $user->photo) }}"
+                                                    class="user-img-radious-style"
+                                                    style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%;">
                                         @else
                                             <div class="d-flex align-items-center justify-content-center user-img-radious-style"
                                                 style="background: {{ $selectedColor['bg'] }}; color: white; width: 38px; height: 38px;
@@ -352,11 +352,13 @@
                                 auth()->user()->can('créer des dossiers') ||
                                 auth()->user()->can('voir les entrées journalières') ||
                                 auth()->user()->can('créer des entrées journalières') ||
-                                auth()->user()->can('voir tous les temps')
+                                auth()->user()->can('voir tous les temps') ||
+                                auth()->user()->can('voir les congés') ||
+                                auth()->user()->can('créer des congés')
                             )
                             <li class="menu-header">GESTION DU TEMPS</li>
 
-                            @can(['accéder au tableau de bord admin', 'accéder au tableau de bord utilisateur'])
+                            @can('accéder au tableau de bord utilisateur')
                                 <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
                                     <a href="{{ route('dashboard') }}" class="nav-link">
                                         <i class="fas fa-tachometer-alt"></i><span>Tableau de bord</span>
@@ -382,56 +384,59 @@
                                 </li>
                             @endcan
 
-            <li class="dropdown {{ request()->is('conges*') ? 'active' : '' }}">
-                <a href="#" class="menu-toggle nav-link has-dropdown {{ request()->is('conges*') ? 'active' : '' }}">
-                    <i class="fas fa-umbrella-beach"></i><span>Gestion des Congés</span>
-                </a>
-                <ul class="dropdown-menu" style="{{ request()->is('conges*') ? 'display: block;' : '' }}">
-                    
-                        <li class="{{ request()->routeIs('conges.create') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('conges.create') }}"><i class="fas fa-user-plus"></i> Créer un congé</a>
-                        </li>
-                   
-                    
-                        <li class="{{ request()->routeIs('conges.index') ? 'active' : '' }}">
-                            <a class="nav-link" href="{{ route('conges.index') }}"><i class="fas fa-list"></i> Liste des congés</a>
-                        </li>
-                    
-                </ul>
-            </li>
-            {{-- Gestion des Temps --}}
-            @can(['voir les entrées journalières', 'créer des entrées journalières', 'voir tous les temps'])
-                <li class="dropdown {{ request()->routeIs('daily-entries.*') || request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
-                    <a href="#" class="menu-toggle nav-link has-dropdown {{ request()->routeIs('daily-entries.*') || request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
-                        <i class="fas fa-clock"></i><span>Gestion des Temps</span>
-                    </a>
-                    <ul class="dropdown-menu" style="{{ request()->routeIs('daily-entries.*') || request()->routeIs('rapports.mensuel') ? 'display: block;' : '' }}">
-                        @can('créer des entrées journalières')
-                            <li class="{{ request()->routeIs('daily-entries.create') ? 'active' : '' }}">
-                                <a class="nav-link" href="{{ route('daily-entries.create') }}">
-                                    <i class="fas fa-plus-circle"></i> Saisir une tache
+                            {{-- Gestion des Temps --}}
+                            @can(['voir les entrées journalières', 'créer des entrées journalières', 'voir tous les temps'])
+                                <li class="dropdown {{ request()->routeIs('daily-entries.*') || request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
+                                    <a href="#" class="menu-toggle nav-link has-dropdown {{ request()->routeIs('daily-entries.*') || request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
+                                        <i class="fas fa-clock"></i><span>Gestion des Temps</span>
+                                    </a>
+                                    <ul class="dropdown-menu" style="{{ request()->routeIs('daily-entries.*') || request()->routeIs('rapports.mensuel') ? 'display: block;' : '' }}">
+                                        @can('créer des entrées journalières')
+                                            <li class="{{ request()->routeIs('daily-entries.create') ? 'active' : '' }}">
+                                                <a class="nav-link" href="{{ route('daily-entries.create') }}">
+                                                    <i class="fas fa-plus-circle"></i> Saisir une tache
+                                                </a>
+                                            </li>
+                                        @endcan
+                                        @can(['voir les entrées journalières', 'voir tous les temps'])
+                                            <li class="{{ request()->routeIs('daily-entries.index') ? 'active' : '' }}">
+                                                <a class="nav-link" href="{{ route('daily-entries.index') }}">
+                                                    <i class="fas fa-list-alt"></i> Liste des taches
+                                                </a>
+                                            </li>
+                                        @endcan
+                                        @can(['voir les rapports mensuels', 'voir tous les temps'])
+                                            <li class="{{ request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
+                                                <a class="nav-link" href="{{ route('rapports.mensuel') }}">
+                                                    <i class="fas fa-calendar-alt"></i> Rapport mensuel
+                                                </a>
+                                            </li>
+                                        @endcan
+                                    </ul>
+                                </li>
+                            @endcan
+                            {{-- Gestion des Congés --}}
+                            @can(['voir les congés', 'créer des congés'])
+                            <li class="dropdown {{ request()->is('conges*') ? 'active' : '' }}">
+                                <a href="#" class="menu-toggle nav-link has-dropdown {{ request()->is('conges*') ? 'active' : '' }}">
+                                    <i class="fas fa-umbrella-beach"></i><span>Gestion des Congés</span>
                                 </a>
+                                <ul class="dropdown-menu" style="{{ request()->is('conges*') ? 'display: block;' : '' }}">
+                                    @can('créer des congés')
+                                        <li class="{{ request()->routeIs('conges.create') ? 'active' : '' }}">
+                                            <a class="nav-link" href="{{ route('conges.create') }}"><i class="fas fa-user-plus"></i> Créer un congé</a>
+                                        </li>
+                                    @endcan
+                                    @can('voir les congés')
+                                        <li class="{{ request()->routeIs('conges.index') ? 'active' : '' }}">
+                                            <a class="nav-link" href="{{ route('conges.index') }}"><i class="fas fa-list"></i> Liste des congés</a>
+                                        </li>
+                                    @endcan
+                                </ul>
                             </li>
-                        @endcan
-                        @can(['voir les entrées journalières', 'voir tous les temps'])
-                            <li class="{{ request()->routeIs('daily-entries.index') ? 'active' : '' }}">
-                                <a class="nav-link" href="{{ route('daily-entries.index') }}">
-                                    <i class="fas fa-list-alt"></i> Liste des taches
-                                </a>
-                            </li>
-                        @endcan
-                        @can(['voir les rapports mensuels', 'voir tous les temps'])
-                            <li class="{{ request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
-                                <a class="nav-link" href="{{ route('rapports.mensuel') }}">
-                                    <i class="fas fa-calendar-alt"></i> Rapport mensuel
-                                </a>
-                            </li>
-                        @endcan
-                    </ul>
-                </li>
-            @endcan
+                            @endcan
 
-    @endif
+                        @endif
 
                         {{-- GESTION DES PARAMÈTRES (inchangée) --}}
                         @if(
@@ -552,15 +557,17 @@
 
                             <li class="dropdown {{ $rapportActive ? 'active' : '' }}">
                                 <a href="#" class="menu-toggle nav-link has-dropdown {{ $rapportActive ? 'active' : '' }}">
-                                    <i class="fas fa-chart-line"></i><span>Rapports</span>
+                                    <i class="fas fa-chart-line"></i><span>Statistiques</span>
                                 </a>
 
                                 <ul class="dropdown-menu" style="{{ $rapportActive ? 'display: block;' : '' }}">
-                                    <li class="{{ request()->routeIs('statistics.annual') ? 'active' : '' }}">
-                                        <a class="nav-link" href="{{ route('statistics.annual') }}">
+                                    @can('voir les statistiques générales')
+                                    <li class="{{ request()->routeIs('admin.stats.globale') ? 'active' : '' }}">
+                                        <a class="nav-link" href="{{ route('admin.stats.globale') }}">
                                             <i class="fas fa-chart-pie"></i> Statistiques générales
                                         </a>
                                     </li>
+                                    @endcan
 
                                     @can(['voir les rapports mensuels', 'voir tous les temps'])
                                         <li class="{{ request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
