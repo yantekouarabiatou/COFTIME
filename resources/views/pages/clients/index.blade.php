@@ -77,9 +77,14 @@
                                     <tr data-statut="{{ $client->statut }}">
                                         <td>{{ $loop->iteration }}</td>
                                         <td>
-                                            <img src="{{ $client->logo_url }}" alt="Logo"
-                                                 class="rounded-circle" width="40" height="40"
-                                                 style="object-fit: cover;">
+                                            @if($client->logo)
+                                                <div class="mr-3">
+                                                    <img src="{{ asset('storage/' . $client->logo) }}"
+                                                         alt="Logo {{ $client->nom }}"
+                                                         class="img-fluid"
+                                                         style="width: 40px; height: 40px; object-fit: cover;">
+                                                </div>
+                                            @endif
                                         </td>
                                         <td>
                                             <strong>{{ $client->nom }}</strong>

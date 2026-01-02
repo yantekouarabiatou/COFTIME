@@ -126,6 +126,18 @@ Route::middleware(['auth'])->group(function () {
 
         Route::delete('/roles/{role}', [RolePermissionController::class, 'destroy'])
             ->name('roles.destroy');
+
+            Route::get('/statistics/globale', [StatisticsController::class, 'index'])
+        ->name('stats.globale');
+
+        Route::get('/statistics/data', [StatisticsController::class, 'globalStats'])
+            ->name('stats.data');
+
+        Route::get('/statistics/employes', [StatisticsController::class, 'getEmployes'])
+            ->name('stats.employes');
+
+        Route::get('/statistics/employes/{user}', [StatisticsController::class, 'employeDetails'])
+            ->name('stats.employe.details');
     });
     Route::get('roles-permissions/{role}', [PermissionController::class, 'show'])
         ->name('admin.roles-permissions.show');
@@ -140,7 +152,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('conges', CongeController::class);
 
-    Route::get('/statistics/annual', [StatisticsController::class, 'annual'])->name('statistics.annual');
     Route::get('/statistics/export', [StatisticsController::class, 'export'])->name('statistics.export');
     Route::post('/stats/annual/update', [StatisticsController::class, 'updateCharts'])->name('stats.annual.update');
 

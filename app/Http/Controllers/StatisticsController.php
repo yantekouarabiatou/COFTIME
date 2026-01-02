@@ -3,233 +3,477 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Interet;
-use App\Models\Plainte;
-use App\Models\CadeauInvitation;
-use App\Models\ClientAudit;
+use App\Models\User;
+use App\Models\TimeEntry;
+use App\Models\Dossier;
+use App\Models\DailyEntry;
+use App\Models\Conge;
+use App\Models\Client;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class StatisticsController extends Controller
 {
-    public function annual()
+    /**
+     * Afficher la page des statistiques globales (Admin uniquement)
+     */
+    public function index()
     {
-        $currentYear = date('Y');
-        $years = range($currentYear - 10, $currentYear); // 10 ans en arrière
-        rsort($years);
+        // Vérifier que l'utilisateur est admin
+        if (!auth()->user()->hasRole('admin')) {
+            abort(403, 'Accès non autorisé');
+        }
 
-        $annualStats = $this->calculateAnnualStats($years);
-
-        return view('pages.statistics.annual', compact('annualStats', 'years'));
+        return view('pages.statistics.statglobale');
     }
 
     /**
-     * AJAX - Mise à jour des graphiques avec filtres personnalisés
+     * Récupérer les statistiques globales avec filtres
      */
-    public function updateCharts(Request $request)
+    public function globalStats(Request $request)
     {
-        $request->validate([
-            'start_year' => 'required|integer|min:2000|max:2100',
-            'end_year'   => 'required|integer|min:2000|max:2100',
-            'group_by'   => 'sometimes|in:year,quarter,month',
-        ]);
-
-        $startYear = (int) $request->start_year;
-        $endYear   = (int) $request->end_year;
-
-        if ($startYear > $endYear) {
-            return response()->json(['message' => 'L\'année de début doit être inférieure ou égale à l\'année de fin'], 422);
+        // Vérifier que l'utilisateur est admin
+        if (!auth()->user()->hasRole('admin')) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
         }
 
-        $years = range($endYear, $startYear); // ordre décroissant
+        // Récupérer les filtres
+        $periode = $request->get('periode', 'mois'); // jour, semaine, mois, annee, personnalise
+        $dateDebut = $request->get('date_debut');
+        $dateFin = $request->get('date_fin');
+        $userId = $request->get('user_id'); // Filtre par employé spécifique
 
-        $annualStats = $this->calculateAnnualStats($years);
+        // Définir les dates selon la période
+        [$startDate, $endDate] = $this->getDateRange($periode, $dateDebut, $dateFin);
+
+        // Statistiques globales
+        $stats = [
+            'totaux' => $this->getTotauxGlobaux($startDate, $endDate, $userId),
+            'classement_employes' => $this->getClassementEmployes($startDate, $endDate),
+            'classement_conges' => $this->getClassementConges($startDate, $endDate),
+            'evolution_heures' => $this->getEvolutionHeures($startDate, $endDate, $userId),
+            'repartition_dossiers' => $this->getRepartitionDossiers($startDate, $endDate, $userId),
+            'statistiques_conges' => $this->getStatistiquesConges($startDate, $endDate, $userId),
+            'performance_mensuelle' => $this->getPerformanceMensuelle($startDate, $endDate, $userId),
+            'taux_validation' => $this->getTauxValidation($startDate, $endDate, $userId),
+            'heures_par_jour_semaine' => $this->getHeuresParJourSemaine($startDate, $endDate, $userId),
+        ];
 
         return response()->json([
-            'chart_data' => $annualStats['chart_data']
+            'stats' => $stats,
+            'periode' => [
+                'type' => $periode,
+                'debut' => $startDate->format('Y-m-d'),
+                'fin' => $endDate->format('Y-m-d'),
+            ],
+            'filtre_user' => $userId ? User::find($userId)->prenom . ' ' . User::find($userId)->nom : null,
         ]);
     }
 
-    private function calculateAnnualStats(array $years)
+    /**
+     * Obtenir la plage de dates selon la période
+     */
+    private function getDateRange($periode, $dateDebut = null, $dateFin = null)
     {
-        $stats = [
-            'yearly_data'     => [],
-            'chart_data'      => [
-                'labels'             => [],
-                'interets'           => [],
-                'plaintes'           => [],
-                'cadeaux'            => [],
-                'clients'            => [],
-                'current_year'       => [0, 0, 0, 0, 0],
-                'interets_actifs'    => [],
-                'plaintes_resolues'  => [],
-            ],
-            'current_year'    => ['year' => date('Y'), 'total_activities' => 0],
-            'best_year'       => null,
-            'evolution_percentage' => 0,
-            'yearly_average'  => 0,
-            'averages'        => [],
-            'interets_stats'  => $this->calculateInteretsStats($years),
-            'plaintes_stats'  => $this->calculatePlaintesStats($years),
+        switch ($periode) {
+            case 'jour':
+                $startDate = now()->startOfDay();
+                $endDate = now()->endOfDay();
+                break;
+            case 'semaine':
+                $startDate = now()->startOfWeek();
+                $endDate = now()->endOfWeek();
+                break;
+            case 'mois':
+                $startDate = now()->startOfMonth();
+                $endDate = now()->endOfMonth();
+                break;
+            case 'annee':
+                $startDate = now()->startOfYear();
+                $endDate = now()->endOfYear();
+                break;
+            case 'personnalise':
+                $startDate = $dateDebut ? Carbon::parse($dateDebut)->startOfDay() : now()->startOfMonth();
+                $endDate = $dateFin ? Carbon::parse($dateFin)->endOfDay() : now()->endOfMonth();
+                break;
+            default:
+                $startDate = now()->startOfMonth();
+                $endDate = now()->endOfMonth();
+        }
+
+        return [$startDate, $endDate];
+    }
+
+    /**
+     * Totaux globaux
+     */
+    private function getTotauxGlobaux($startDate, $endDate, $userId = null)
+    {
+        $timeEntriesQuery = TimeEntry::whereBetween('created_at', [$startDate, $endDate]);
+        $congesQuery = Conge::where(function($q) use ($startDate, $endDate) {
+            $q->whereBetween('date_debut', [$startDate, $endDate])
+              ->orWhereBetween('date_fin', [$startDate, $endDate])
+              ->orWhere(function($q2) use ($startDate, $endDate) {
+                  $q2->where('date_debut', '<=', $startDate)
+                     ->where('date_fin', '>=', $endDate);
+              });
+        });
+
+        if ($userId) {
+            $timeEntriesQuery->where('user_id', $userId);
+            $congesQuery->where('user_id', $userId);
+        }
+
+        return [
+            'total_employes' => $userId ? 1 : User::count(),
+            'employes_actifs' => $userId ? 1 : User::whereHas('timeEntries', function($q) use ($startDate, $endDate) {
+                $q->whereBetween('created_at', [$startDate, $endDate]);
+            })->count(),
+            'total_heures' => round($timeEntriesQuery->sum('heures_reelles'), 2),
+            'total_dossiers' => $userId 
+                ? Dossier::whereHas('timeEntries', function($q) use ($userId, $startDate, $endDate) {
+                    $q->where('user_id', $userId)
+                      ->whereBetween('created_at', [$startDate, $endDate]);
+                })->count()
+                : Dossier::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'dossiers_actifs' => Dossier::whereIn('statut', ['ouvert', 'en_cours'])->count(),
+            'total_conges' => $congesQuery->count(),
+            'conges_en_cours' => Conge::where('date_debut', '<=', now())
+                ->where('date_fin', '>=', now())
+                ->when($userId, function($q) use ($userId) {
+                    $q->where('user_id', $userId);
+                })
+                ->count(),
+            'total_clients' => Client::count(),
+            'moyenne_heures_employe' => $userId ? null : round(
+                $timeEntriesQuery->sum('heures_reelles') / max(User::count(), 1),
+                2
+            ),
         ];
+    }
 
-        $totals = [];
-        $maxCount = 0;
-
-        foreach ($years as $index => $year) {
-            $stats['chart_data']['labels'][] = (string)$year;
-
-            $interets = $this->getInteretsStats($year);
-            $plaintes = $this->getPlaintesStats($year);
-            $cadeaux  = $this->getCadeauxStats($year);
-            $clients  = $this->getClientsStats($year);
-
-            $total = $interets['total'] + $plaintes['total'] + $cadeaux['total'] + $clients['total'];
-
-            $yearData = [
-                'interets' => $interets,
-                'plaintes' => $plaintes,
-                'cadeaux'  => $cadeaux,
-                'clients'  => $clients,
-                'total'    => $total,
-                'evolution'=> 0,
-            ];
-
-             // Évolution par rapport à l'année précédente (dans la boucle)
-                if ($index > 0 && isset($totals[$index - 1])) {
-                    $prev = $totals[$index - 1];
-                    $yearData['evolution'] = $prev > 0
-                        ? round((($total - $prev) / $prev) * 100, 1)
-                        : 0;
-                }
-
-                // Évolution de l'année en cours vs année précédente
-                if ($index > 0 && isset($totals[$index - 1])) {
-                    $prev = $totals[$index - 1];
-                    $stats['evolution_percentage'] = $prev > 0
-                        ? round((($total - $prev) / $prev) * 100, 1)
-                        : 0;
-                }
-
-            $stats['yearly_data'][$year] = $yearData;
-            $totals[] = $total;
-
-            // Graphiques
-            $stats['chart_data']['interets'][] = $interets['total'];
-            $stats['chart_data']['plaintes'][] = $plaintes['total'];
-            $stats['chart_data']['cadeaux'][]  = $cadeaux['total'];
-            $stats['chart_data']['clients'][]  = $clients['total'];
-            $stats['chart_data']['interets_actifs'][] = $interets['actifs'] ?? 0;
-            $stats['chart_data']['plaintes_resolues'][] = $plaintes['resolues'] ?? 0;
-
-            // Meilleure année
-            if ($total > $maxCount) {
-                $maxCount = $total;
-                $stats['best_year'] = ['year' => $year, 'count' => $total];
-            }
-
-            // Année en cours
-            if ($year == date('Y')) {
-                $stats['current_year']['total_activities'] = $total;
-                $stats['chart_data']['current_year'] = [
-                    $interets['total'],
-                    $plaintes['total'],
-                    $cadeaux['total'],
-                    $clients['total'],
+    /**
+     * Classement des employés par heures travaillées
+     */
+    private function getClassementEmployes($startDate, $endDate)
+    {
+        return User::select('users.id', 'users.prenom', 'users.nom', 'users.email')
+            ->leftJoin('time_entries', 'users.id', '=', 'time_entries.user_id')
+            ->whereBetween('time_entries.created_at', [$startDate, $endDate])
+            ->groupBy('users.id', 'users.prenom', 'users.nom', 'users.email')
+            ->selectRaw('SUM(time_entries.heures_reelles) as total_heures')
+            ->selectRaw('COUNT(DISTINCT time_entries.dossier_id) as nombre_dossiers')
+            ->orderByDesc('total_heures')
+            ->limit(20)
+            ->get()
+            ->map(function($user, $index) {
+                return [
+                    'rang' => $index + 1,
+                    'id' => $user->id,
+                    'nom_complet' => $user->prenom . ' ' . $user->nom,
+                    'email' => $user->email,
+                    'total_heures' => round($user->total_heures ?? 0, 2),
+                    'nombre_dossiers' => $user->nombre_dossiers ?? 0,
                 ];
+            });
+    }
 
-                // Évolution vs année précédente
-                if ($index > 0 && isset($totals[$index - 1])) {
-                    $prev = $totals[$index - 1];
-                    if ($prev > 0) {
-                        $stats['evolution_percentage'] = round((($total - $prev) / $prev) * 100, 1);
-                    }
+    /**
+     * Classement des employés par nombre de congés
+     */
+    private function getClassementConges($startDate, $endDate)
+    {
+        return User::select('users.id', 'users.prenom', 'users.nom', 'users.email')
+            ->leftJoin('conges', 'users.id', '=', 'conges.user_id')
+            ->where(function($q) use ($startDate, $endDate) {
+                $q->whereBetween('conges.date_debut', [$startDate, $endDate])
+                  ->orWhereBetween('conges.date_fin', [$startDate, $endDate]);
+            })
+            ->groupBy('users.id', 'users.prenom', 'users.nom', 'users.email')
+            ->selectRaw('COUNT(conges.id) as nombre_conges')
+            ->selectRaw('SUM(DATEDIFF(conges.date_fin, conges.date_debut) + 1) as total_jours_conges')
+            ->orderByDesc('nombre_conges')
+            ->limit(20)
+            ->get()
+            ->map(function($user, $index) {
+                return [
+                    'rang' => $index + 1,
+                    'id' => $user->id,
+                    'nom_complet' => $user->prenom . ' ' . $user->nom,
+                    'email' => $user->email,
+                    'nombre_conges' => $user->nombre_conges ?? 0,
+                    'total_jours' => $user->total_jours_conges ?? 0,
+                ];
+            });
+    }
+
+    /**
+     * Évolution des heures dans la période
+     */
+    private function getEvolutionHeures($startDate, $endDate, $userId = null)
+    {
+        $diffInDays = $startDate->diffInDays($endDate);
+        $groupBy = 'DATE(time_entries.created_at)';
+        $format = '%Y-%m-%d';
+        
+        // Adapter le groupement selon la durée
+        if ($diffInDays > 90) {
+            $groupBy = 'DATE_FORMAT(time_entries.created_at, "%Y-%m")';
+            $format = '%Y-%m';
+        } elseif ($diffInDays > 365) {
+            $groupBy = 'YEAR(time_entries.created_at)';
+            $format = '%Y';
+        }
+
+        $query = TimeEntry::selectRaw("$groupBy as periode")
+            ->selectRaw('SUM(heures_reelles) as total_heures')
+            ->selectRaw('COUNT(DISTINCT user_id) as nombre_employes')
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $data = $query->groupBy('periode')
+            ->orderBy('periode')
+            ->get();
+
+        return [
+            'labels' => $data->pluck('periode')->map(function($date) use ($diffInDays) {
+                if ($diffInDays > 90) {
+                    return Carbon::parse($date . '-01')->format('M Y');
                 }
-            }
+                return Carbon::parse($date)->format('d/m');
+            })->toArray(),
+            'heures' => $data->pluck('total_heures')->map(fn($h) => round($h, 2))->toArray(),
+            'employes' => $data->pluck('nombre_employes')->toArray(),
+        ];
+    }
+
+    /**
+     * Répartition des heures par dossier
+     */
+    private function getRepartitionDossiers($startDate, $endDate, $userId = null)
+    {
+        $query = Dossier::select('dossiers.nom', 'dossiers.reference', 'dossiers.type_dossier')
+            ->join('time_entries', 'dossiers.id', '=', 'time_entries.dossier_id')
+            ->whereBetween('time_entries.created_at', [$startDate, $endDate]);
+
+        if ($userId) {
+            $query->where('time_entries.user_id', $userId);
         }
 
-        // Moyennes
-        if (!empty($totals)) {
-            $count = count($totals);
-            $stats['yearly_average'] = round(array_sum($totals) / $count, 1);
+        $data = $query->groupBy('dossiers.id', 'dossiers.nom', 'dossiers.reference', 'dossiers.type_dossier')
+            ->selectRaw('SUM(time_entries.heures_reelles) as total_heures')
+            ->selectRaw('COUNT(DISTINCT time_entries.user_id) as nombre_intervenants')
+            ->orderByDesc('total_heures')
+            ->limit(10)
+            ->get();
 
-            $stats['averages'] = [
-                'interets'             => round(array_sum($stats['chart_data']['interets']) / $count, 1),
-                'interets_actifs'      => round(array_sum($stats['chart_data']['interets_actifs']) / $count, 1),
-                'plaintes'             => round(array_sum($stats['chart_data']['plaintes']) / $count, 1),
-                'plaintes_en_cours'    => round(array_sum(array_column($stats['yearly_data'], 'plaintes')) / $count, 1), // à affiner si besoin
-                'plaintes_resolues'    => round(array_sum($stats['chart_data']['plaintes_resolues']) / $count, 1),
-                'cadeaux'              => round(array_sum($stats['chart_data']['cadeaux']) / $count, 1),
-                'cadeaux_acceptes'     => round(array_sum(array_column(array_column($stats['yearly_data'], 'cadeaux'), 'acceptes')) / $count, 1),
-                'cadeaux_refuses'      => round(array_sum(array_column(array_column($stats['yearly_data'], 'cadeaux'), 'refuses')) / $count, 1),
-                'clients'              => round(array_sum($stats['chart_data']['clients']) / $count, 1),
-                'clients_actifs'       => round(array_sum(array_column(array_column($stats['yearly_data'], 'clients'), 'actifs')) / $count, 1),
-                'clients_en_cours'     => round(array_sum(array_column(array_column($stats['yearly_data'], 'clients'), 'en_cours')) / $count, 1),
-                'total'                => $stats['yearly_average'],
-            ];
+        return [
+            'dossiers' => $data->pluck('nom')->toArray(),
+            'heures' => $data->pluck('total_heures')->map(fn($h) => round($h, 2))->toArray(),
+            'intervenants' => $data->pluck('nombre_intervenants')->toArray(),
+            'types' => $data->pluck('type_dossier')->toArray(),
+        ];
+    }
+
+    /**
+     * Statistiques des congés
+     */
+    private function getStatistiquesConges($startDate, $endDate, $userId = null)
+    {
+        $query = Conge::whereBetween('date_debut', [$startDate, $endDate]);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
         }
 
-        return $stats;
-    }
-
-    // === Méthodes de stats par année (inchangées mais nettoyées) ===
-    private function getInteretsStats($year)
-    {
-        $start = "$year-01-01";
-        $end   = "$year-12-31 23:59:59";
+        $congesParType = $query->select('type_conge', DB::raw('count(*) as count'))
+            ->groupBy('type_conge')
+            ->get();
 
         return [
-            'total'  => Interet::whereBetween('created_at', [$start, $end])->count(),
-            'actifs' => Interet::where('etat_interet', 'Actif')
-                              ->whereBetween('created_at', [$start, $end])->count(),
+            'types' => $congesParType->pluck('type_conge')->toArray(),
+            'counts' => $congesParType->pluck('count')->toArray(),
         ];
     }
 
-    private function getPlaintesStats($year)
+    /**
+     * Performance mensuelle (comparaison mois par mois)
+     */
+    private function getPerformanceMensuelle($startDate, $endDate, $userId = null)
     {
-        $start = "$year-01-01";
-        $end   = "$year-12-31 23:59:59";
+        $query = TimeEntry::selectRaw('MONTH(created_at) as mois')
+            ->selectRaw('YEAR(created_at) as annee')
+            ->selectRaw('SUM(heures_reelles) as total_heures')
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $data = $query->groupBy('annee', 'mois')
+            ->orderBy('annee')
+            ->orderBy('mois')
+            ->get();
 
         return [
-            'total'     => Plainte::whereBetween('created_at', [$start, $end])->count(),
-            'en_cours'  => Plainte::where('etat_plainte', 'En cours')
-                                 ->whereBetween('created_at', [$start, $end])->count(),
-            'resolues'  => Plainte::where('etat_plainte', 'Résolue')
-                                 ->whereBetween('created_at', [$start, $end])->count(),
+            'labels' => $data->map(function($item) {
+                return Carbon::create($item->annee, $item->mois)->format('M Y');
+            })->toArray(),
+            'heures' => $data->pluck('total_heures')->map(fn($h) => round($h, 2))->toArray(),
         ];
     }
 
-    private function getCadeauxStats($year)
+    /**
+     * Taux de validation des saisies
+     */
+    private function getTauxValidation($startDate, $endDate, $userId = null)
     {
-        $start = "$year-01-01";
-        $end   = "$year-12-31 23:59:59";
+        $query = DailyEntry::whereBetween('jour', [$startDate, $endDate]);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $stats = $query->select('statut', DB::raw('count(*) as count'))
+            ->groupBy('statut')
+            ->get();
+
+        $total = $stats->sum('count');
 
         return [
-            'total'    => CadeauInvitation::whereBetween('created_at', [$start, $end])->count(),
-            'acceptes' => CadeauInvitation::where('action_prise', 'accepté')
-                                          ->whereBetween('created_at', [$start, $end])->count(),
-            'refuses'  => CadeauInvitation::where('action_prise', 'refusé')
-                                          ->whereBetween('created_at', [$start, $end])->count(),
+            'statuts' => $stats->pluck('statut')->toArray(),
+            'counts' => $stats->pluck('count')->toArray(),
+            'pourcentages' => $stats->map(function($item) use ($total) {
+                return $total > 0 ? round(($item->count / $total) * 100, 1) : 0;
+            })->toArray(),
         ];
     }
 
-    private function getClientsStats($year)
+    /**
+     * Heures par jour de la semaine
+     */
+    private function getHeuresParJourSemaine($startDate, $endDate, $userId = null)
     {
-        $start = "$year-01-01";
-        $end   = "$year-12-31 23:59:59";
+        $query = TimeEntry::selectRaw('DAYOFWEEK(created_at) as jour')
+            ->selectRaw('SUM(heures_reelles) as total_heures')
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $data = $query->groupBy('jour')
+            ->orderBy('jour')
+            ->get();
+
+        $jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+        
+        // Réorganiser pour commencer par Lundi
+        $heuresParJour = array_fill(0, 7, 0);
+        foreach ($data as $item) {
+            $heuresParJour[$item->jour - 1] = round($item->total_heures, 2);
+        }
+
+        // Décaler pour commencer par lundi
+        $lundi = array_slice($heuresParJour, 1, 6);
+        $dimanche = array_slice($heuresParJour, 0, 1);
+        $heuresParJour = array_merge($lundi, $dimanche);
+        
+        $joursOrdre = array_merge(array_slice($jours, 1, 6), array_slice($jours, 0, 1));
 
         return [
-            'total'     => ClientAudit::whereBetween('created_at', [$start, $end])->count(),
-            'actifs'    => ClientAudit::where('statut', 'actif')
-                                      ->whereBetween('created_at', [$start, $end])->count(),
-            'en_cours'  => ClientAudit::where('statut', 'en_cours')
-                                      ->whereBetween('created_at', [$start, $end])->count(),
+            'jours' => $joursOrdre,
+            'heures' => $heuresParJour,
         ];
     }
 
-    private function calculateInteretsStats($years) {
-        return ['activity_rate' => 78.4, 'growth' => 15.2];
+    /**
+     * Liste des employés pour le filtre
+     */
+    public function getEmployes()
+    {
+        if (!auth()->user()->hasRole('admin')) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+
+        $employes = User::select('id', 'prenom', 'nom', 'email')
+            ->orderBy('prenom')
+            ->orderBy('nom')
+            ->get()
+            ->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'nom_complet' => $user->prenom . ' ' . $user->nom,
+                    'email' => $user->email,
+                ];
+            });
+
+        return response()->json($employes);
     }
 
-    private function calculatePlaintesStats($years) {
-        return ['resolution_rate' => 85.7, 'avg_days' => 12, 'trend' => -8.1];
+    /**
+     * Statistiques détaillées d'un employé
+     */
+    public function employeDetails($userId)
+    {
+        if (!auth()->user()->hasRole('admin')) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+
+        $user = User::findOrFail($userId);
+
+        $stats = [
+            'user' => [
+                'id' => $user->id,
+                'nom_complet' => $user->prenom . ' ' . $user->nom,
+                'email' => $user->email,
+            ],
+            'heures_totales' => round(TimeEntry::where('user_id', $userId)->sum('heures_reelles'), 2),
+            'heures_mois' => round(TimeEntry::where('user_id', $userId)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('heures_reelles'), 2),
+            'heures_annee' => round(TimeEntry::where('user_id', $userId)
+                ->whereYear('created_at', now()->year)
+                ->sum('heures_reelles'), 2),
+            'nombre_dossiers' => Dossier::whereHas('timeEntries', function($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })->count(),
+            'nombre_conges_annee' => Conge::where('user_id', $userId)
+                ->whereYear('date_debut', now()->year)
+                ->count(),
+            'jours_conges_annee' => Conge::where('user_id', $userId)
+                ->whereYear('date_debut', now()->year)
+                ->get()
+                ->sum(function($conge) {
+                    return Carbon::parse($conge->date_debut)->diffInDays(Carbon::parse($conge->date_fin)) + 1;
+                }),
+        ];
+
+        return response()->json($stats);
+    }
+
+    /**
+     * Exporter les statistiques
+     */
+    public function export(Request $request)
+    {
+        if (!auth()->user()->hasRole('admin')) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+
+        $type = $request->get('type', 'excel'); // excel, pdf, csv
+        $periode = $request->get('periode', 'mois');
+        
+        // TODO: Implémenter l'export avec Laravel Excel ou DomPDF
+        
+        return response()->json([
+            'message' => 'Export en cours de développement',
+            'type' => $type,
+            'periode' => $periode,
+        ]);
     }
 }
