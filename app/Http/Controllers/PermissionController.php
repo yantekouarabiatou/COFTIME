@@ -7,6 +7,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 use RealRashid\SweetAlert\Facades\Alert;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class PermissionController extends Controller
 {
@@ -29,11 +30,11 @@ class PermissionController extends Controller
         $groupedPermissions = $this->permissionService->getGroupedPermissions();
         $groupLabels        = $this->permissionService->getPermissionGroups();
 
+        // Récupérer tous les rôles avec permissions et le nombre d’utilisateurs
         $roles = Role::with('permissions')
-            ->addSelect([
-                'users_custom_count' => User::selectRaw('count(*)')
-                    ->whereColumn('role_id', 'roles.id')
-            ])
+            ->withCount(['users as users_custom_count' => function ($query) {
+                $query->where('model_type', User::class); // Spatie pivot
+            }])
             ->get();
 
         return view('pages.permissions.index', compact('groupedPermissions', 'groupLabels', 'roles'));

@@ -57,7 +57,7 @@
                                                 <td>
                                                     <strong>{{ $role->name }}</strong>
                                                 </td>
-                                                <td>{{ $role->description ?? '<em class="text-muted">Aucune</em>' }}</td>
+                                                <td>{!! $role->description ?: '<em class="text-muted">Aucune</em>' !!}</td>
                                                 <td>
                                                     <span class="badge badge-info badge-pill">
                                                         {{ $role->permissions->count() }}
