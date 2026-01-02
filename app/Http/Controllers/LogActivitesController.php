@@ -4,57 +4,69 @@ namespace App\Http\Controllers;
 
 use App\Models\LogActivite;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate; // Important pour les checks de permission
 
 class LogActivitesController extends Controller
 {
     public function __construct()
     {
         $this->middleware('auth');
-
-        // Optionnel: Middleware global pour l'accès aux logs si vous avez une permission spécifique
-        // $this->middleware('permission:accéder au tableau de bord admin')->only(['index']);
     }
 
     /**
-     * Display a listing of the activity logs.
+     * Liste des logs d'activité
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
 
-        // On initialise la requête de base
-        $query = LogActivite::with('user')->latest();
+        // Requête de base optimisée : on ne sélectionne QUE les colonnes nécessaires
+        $query = LogActivite::query()
+            ->select([
+                'id',
+                'user_id',
+                'action',
+                'loggable_type',
+                'loggable_id',
+                'description',
+                'ip_address',
+                'created_at',
+            ])
+            ->with('user:id,prenom,nom') // On charge seulement les champs utiles de l'utilisateur
+            ->latest('created_at'); // ORDER BY created_at DESC
 
-        // Si l'utilisateur est Super Admin ou Admin, il voit TOUT
-        // On utilise la permission "accéder au tableau de bord admin" comme proxy pour "voir tous les logs"
-        // OU on vérifie directement les rôles via Spatie
-        if ($user->hasRole(['super-admin', 'admin'])) {
-            // Aucune restriction, ils voient tout
-        } else {
-            // Sinon, l'utilisateur ne voit que SES propres actions
+        // Restriction selon le rôle
+        if (!$user->hasRole(['super-admin', 'admin'])) {
             $query->where('user_id', $user->id);
         }
 
+        // Pagination optimisée (50 par page)
         $logs = $query->paginate(50);
+
+        // Astuce : on garde l'URL propre pour la pagination
+        $logs->appends($request->all());
 
         return view('pages.logs.index', compact('logs'));
     }
 
+    /**
+     * Affichage d'un log détaillé
+     */
     public function show(LogActivite $log)
     {
         $user = auth()->user();
 
-        // SÉCURITÉ : Empêcher un utilisateur lambda de voir le log d'un autre via l'URL
+        // Sécurité : un utilisateur normal ne voit que ses propres logs
         if (!$user->hasRole(['super-admin', 'admin']) && $log->user_id !== $user->id) {
-            abort(403, 'Vous n\'avez pas la permission de consulter ce journal d\'activité.');
+            abort(403, 'Accès refusé.');
         }
 
-        $log->loadMissing(['user', 'loggable']);
-
-        if ($log->loggable && method_exists($log->loggable, 'withTrashed')) {
-            $log->loadMissing(['loggable' => fn($q) => $q->withTrashed()]);
-        }
+        // Chargement intelligent des relations
+        $log->loadMissing([
+            'user:id,prenom,nom',
+            'loggable' => function ($query) {
+                $query->withTrashed(); // Pour voir même les ressources supprimées
+            }
+        ]);
 
         return view('pages.logs.show', compact('log'));
     }

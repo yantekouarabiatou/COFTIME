@@ -102,4 +102,5 @@ class Client extends Model
               ->orWhere('contact_principal', 'LIKE', "%{$search}%");
         });
     }
+
 }

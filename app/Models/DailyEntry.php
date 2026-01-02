@@ -172,4 +172,5 @@ class DailyEntry extends Model
     {
         return $query->whereBetween('jour', [$debut, $fin]);
     }
+    
 }

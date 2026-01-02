@@ -6,123 +6,132 @@ use App\Events\ModelActivityEvent;
 use App\Services\ActivityLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class UniversalModelObserver
 {
     /**
-     * Événement lors de la création
-     */ public function created(Model $model)
+     * Création
+     */
+    public function created(Model $model)
     {
-        $this->logActivity('created', $model);
+        $description = "Création de " . $this->getModelName($model);
+        $this->logActivity('created', $model, $description);
 
-        $action = $model instanceof \App\Models\Assignation ? 'assigned' : 'created';
-        $this->notifyUsers($model, $action);
-    }
-
-    public function updated(Model $model)
-    {
-        $oldValues = $model->getOriginal();
-        $newValues = $model->getChanges();
-
-        $this->logActivity('updated', $model, "Modification de " . class_basename($model), $oldValues, $newValues);
-
-        $action = 'updated';
-        if ($model instanceof \App\Models\Plainte && isset($newValues['etat_plainte'])) {
-            $action = 'status_changed';
-        }
-
-        $additionalRecipients = $this->getAdditionalRecipientsForUpdate($model, $oldValues, $newValues);
-        $this->notifyUsers($model, $action, $additionalRecipients);
+        $this->notifyUsers($model, 'created');
     }
 
     /**
-     * Événement lors de la suppression
+     * Mise à jour
+     */
+    public function updated(Model $model)
+    {
+        $changes = $model->getChanges();
+
+        if (empty($changes)) {
+            return;
+        }
+
+        // Anciennes valeurs uniquement pour les champs modifiés
+        $oldValues = [];
+        foreach ($changes as $key => $newValue) {
+            $oldValues[$key] = $model->getOriginal($key);
+        }
+
+        $modifiedFields = implode(', ', array_keys($changes));
+        $description = "Modification de " . $this->getModelName($model) . " ({$modifiedFields})";
+
+        $this->logActivity('updated', $model, $description, $oldValues, $changes);
+
+        $this->notifyUsers($model, 'updated');
+    }
+
+    /**
+     * Suppression
      */
     public function deleted(Model $model)
     {
-        $this->logActivity('deleted', $model);
+        $description = "Suppression de " . $this->getModelName($model);
+        $this->logActivity('deleted', $model, $description);
+
         $this->notifyUsers($model, 'deleted');
     }
 
     /**
-     * Événement lors de la restauration
+     * Restauration (soft delete)
      */
     public function restored(Model $model)
     {
-        $this->logActivity('restored', $model);
+        $description = "Restauration de " . $this->getModelName($model);
+        $this->logActivity('restored', $model, $description);
+
         $this->notifyUsers($model, 'restored');
     }
 
     /**
-     * Événement lors de la suppression définitive
+     * Suppression définitive
      */
     public function forceDeleted(Model $model)
     {
-        $this->logActivity('force_deleted', $model);
+        $description = "Suppression définitive de " . $this->getModelName($model);
+        $this->logActivity('force_deleted', $model, $description);
+
         $this->notifyUsers($model, 'force_deleted');
     }
 
     /**
-     * Log l'activité
+     * Log via le service
      */
     private function logActivity(string $action, Model $model, string $description = null, array $old = null, array $new = null)
     {
         try {
             ActivityLogger::log($action, $model, $description, $old, $new);
         } catch (\Exception $e) {
-            Log::error("Erreur lors du log d'activité: " . $e->getMessage(), [
+            Log::error("Erreur log activité (gestion temps) : " . $e->getMessage(), [
                 'action' => $action,
                 'model' => get_class($model),
-                'model_id' => $model->id
+                'model_id' => $model->getKey() ?? 'null',
             ]);
         }
     }
 
     /**
-     * Notifier les utilisateurs
+     * Notification via événement
      */
-    private function notifyUsers(Model $model, string $action, array $additionalRecipients = [])
+    private function notifyUsers(Model $model, string $action)
     {
         try {
-            // CHARGEMENT AUTOMATIQUE POUR TOUS LES MODÈLES QUI ONT BESOIN DE user
-            $model->loadMissing('user'); // ← pour tous les modèles qui ont user_id
+            // Chargement des relations nécessaires selon le modèle
+            match (true) {
+                $model instanceof \App\Models\Conge => $model->loadMissing(['user', 'Conges.user']),
+                $model instanceof \App\Models\DailyEntry => $model->loadMissing(['user', 'timeEntries.dossier.client']),
+                $model instanceof \App\Models\TimeEntry  => $model->loadMissing(['user', 'dossier.client', 'dailyEntry.user']),
+                $model instanceof \App\Models\Dossier    => $model->loadMissing(['client', 'timeEntries.user']),
+                $model instanceof \App\Models\Client     => null,
+                default => $model->loadMissing('user'),
+            };
 
-            // Cas spécifiques (qui ont besoin de plus)
-            if ($model instanceof \App\Models\Assignation) {
-                $model->loadMissing(['user', 'plainte.user']);
-            }
-            if ($model instanceof \App\Models\Plainte) {
-                $model->loadMissing(['user', 'assignations.user']);
-            }
-
-            event(new ModelActivityEvent($model, $action, null, $additionalRecipients));
+            event(new ModelActivityEvent($model, $action));
         } catch (\Exception $e) {
-            Log::error("Erreur notification: " . $e->getMessage());
+            Log::error("Erreur notification gestion temps : " . $e->getMessage(), [
+                'model' => get_class($model),
+                'action' => $action,
+            ]);
         }
     }
 
     /**
-     * Obtenir des destinataires supplémentaires pour les modifications
+     * Nom lisible du modèle
      */
-    private function getAdditionalRecipientsForUpdate(Model $model, array $oldValues, array $newValues)
+    private function getModelName(Model $model): string
     {
-        $recipients = [];
-
-        // Exemple: Si changement d'utilisateur assigné dans une plainte
-        if ($model instanceof \App\Models\Plainte && isset($newValues['user_assigned_id'])) {
-            $oldAssignedId = $oldValues['user_assigned_id'] ?? null;
-            $newAssignedId = $newValues['user_assigned_id'];
-
-            if ($oldAssignedId != $newAssignedId && $newAssignedId) {
-                $newUser = \App\Models\User::find($newAssignedId);
-                if ($newUser) {
-                    $recipients[] = $newUser;
-                }
-            }
-        }
-
-        // Ajoutez d'autres conditions spécifiques selon vos besoins
-
-        return $recipients;
+        return match (true) {
+            $model instanceof \App\Models\Conge => 'Congé',
+            $model instanceof \App\Models\DailyEntry => 'feuille de temps',
+            $model instanceof \App\Models\TimeEntry  => 'activité temps',
+            $model instanceof \App\Models\Dossier    => 'dossier',
+            $model instanceof \App\Models\Client     => 'client',
+            default                                  => Str::lower(class_basename($model)),
+        };
     }
 }

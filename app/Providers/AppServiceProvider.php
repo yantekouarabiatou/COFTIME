@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Client;
+use App\Models\DailyEntry;
+use App\Models\Dossier;
 use App\Models\TimeEntry;
 use App\Observers\TimeEntryObserver;
 use App\Observers\UniversalModelObserver;
@@ -15,6 +18,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function boot()
     {
+
+        Client::observe(UniversalModelObserver::class);
+        Dossier::observe(UniversalModelObserver::class);
+        DailyEntry::observe(UniversalModelObserver::class);
+        TimeEntry::observe(UniversalModelObserver::class);
 
         // Pour les messages flash SweetAlert
         if (session('success')) {
@@ -32,9 +40,6 @@ class AppServiceProvider extends ServiceProvider
         if (session('info')) {
             alert()->info('Information', session('info'));
         }
-
-        TimeEntry::observe(TimeEntryObserver::class);
-
         Gate::before(function ($user, $ability) {
 
             // Liste des rôles qui ont le pouvoir absolu (God Mode)

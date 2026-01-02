@@ -19,10 +19,7 @@ class Poste extends Model
     ];
 
     // Relation avec les intérêts
-    public function interets()
-    {
-        return $this->hasMany(Interet::class);
-    }
+   
 
     // Relation avec les users
     public function users()
