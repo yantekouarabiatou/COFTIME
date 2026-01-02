@@ -25,7 +25,7 @@
                             </a>
                             @endif
 
-                            @if(auth()->user()->hasRole('Directeur Général') && $dailyEntry->statut == 'soumis')
+                            @if(auth()->user()->hasRole('admin') && $dailyEntry->statut == 'soumis')
                             <button type="button" class="btn btn-icon icon-left btn-success" id="validate-btn">
                                 <i class="fas fa-check"></i> Valider
                             </button>

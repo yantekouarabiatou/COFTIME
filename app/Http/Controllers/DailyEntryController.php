@@ -15,6 +15,8 @@ use App\Models\TimeEntry;
 use App\Rules\BelongsToDailyEntry;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Validator;
+
 class DailyEntryController extends Controller
 {
     /**
@@ -64,10 +66,25 @@ class DailyEntryController extends Controller
     /**
      * Afficher le formulaire de création
      */
+    /**
+     * Afficher le formulaire de création
+     */
     public function create()
     {
         // Récupérer l'utilisateur connecté
         $currentUser = Auth::user();
+
+        // Vérifier s'il existe déjà une entrée pour aujourd'hui
+        $todayEntry = DailyEntry::where('user_id', $currentUser->id)
+            ->whereDate('jour', now()->toDateString())
+            ->first();
+
+        if ($todayEntry) {
+            // Rediriger vers l'édition si une entrée existe déjà pour aujourd'hui
+            return redirect()
+                ->route('daily-entries.edit', $todayEntry)
+                ->with('info', 'Vous avez déjà une feuille de temps pour aujourd\'hui. Vous pouvez la modifier.');
+        }
 
         // Récupérer les dossiers actifs
         $dossiers = Dossier::with('client')
@@ -92,7 +109,9 @@ class DailyEntryController extends Controller
             'users'
         ));
     }
-
+    /**
+     * Enregistrer une nouvelle feuille de temps
+     */
     /**
      * Enregistrer une nouvelle feuille de temps
      */
@@ -111,23 +130,45 @@ class DailyEntryController extends Controller
             'time_entries.*.travaux' => 'nullable|string|max:500',
         ]);
 
+        // VÉRIFICATION : Récupérer ou créer la DailyEntry
+        $dailyEntry = DailyEntry::firstOrCreate(
+            [
+                'user_id' => $validated['user_id'],
+                'jour' => $validated['jour']
+            ],
+            [
+                'heures_theoriques' => $validated['heures_theoriques'],
+                'commentaire' => $validated['commentaire'],
+                'statut' => 'soumis',
+            ]
+        );
+
+        // Si l'entrée existe déjà, on met à jour les autres champs
+        if ($dailyEntry->wasRecentlyCreated === false) {
+            $dailyEntry->update([
+                'heures_theoriques' => $validated['heures_theoriques'],
+                'commentaire' => $validated['commentaire'],
+                'statut' => 'soumis', // On remet en "soumis" si modification
+            ]);
+
+            // Message d'alerte informatif
+            session()->flash('info', 'Une feuille de temps existante pour cette date a été mise à jour.');
+        }
+
         // Calcul du total des heures
         $totalHeures = collect($validated['time_entries'])
             ->sum('heures_reelles');
 
-        // Création de la feuille de temps
-        $dailyEntry = DailyEntry::create([
-            'user_id' => $validated['user_id'],
-            'jour' => $validated['jour'],
-            'heures_theoriques' => $validated['heures_theoriques'],
-            'heures_reelles' => $totalHeures,
-            'commentaire' => $validated['commentaire'],
-            'statut' => 'soumis',
-        ]);
+        // Mettre à jour le total des heures réelles
+        $dailyEntry->update(['heures_reelles' => $totalHeures]);
 
+        // Supprimer les anciennes time entries avant d'ajouter les nouvelles
+        $dailyEntry->timeEntries()->delete();
+
+        // Créer les nouvelles time entries
         foreach ($validated['time_entries'] as $entry) {
             $dailyEntry->timeEntries()->create([
-                'user_id' => $dailyEntry->user_id,  // ← Ajout crucial
+                'user_id' => $dailyEntry->user_id,
                 'dossier_id' => $entry['dossier_id'],
                 'heure_debut' => $entry['heure_debut'],
                 'heure_fin' => $entry['heure_fin'],
@@ -183,21 +224,27 @@ class DailyEntryController extends Controller
     /**
      * Mettre à jour une feuille de temps
      */
+    /**
+     * Mettre à jour une feuille de temps
+     */
+    /**
+     * Mettre à jour une feuille de temps
+     */
     public function update(Request $request, DailyEntry $dailyEntry)
     {
-        // Validation de base
+        // Validation de base - sans statut required
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'jour' => 'required|date',
             'heures_theoriques' => 'required|numeric|min:0|max:24',
             'commentaire' => 'nullable|string',
-            'statut' => 'required|in:soumis,validé,refusé',
+            // 'statut' est enlevé de la validation car attribué automatiquement
             'time_entries' => 'required|array|min:1',
         ]);
 
         // Validation détaillée pour les time_entries
         foreach ($request->time_entries as $index => $entry) {
-            $validator = Validator::make($entry, [
+            $validator = \Validator::make($entry, [
                 'id' => ['nullable', 'exists:time_entries,id'],
                 'dossier_id' => 'required|exists:dossiers,id',
                 'heure_debut' => 'required|date_format:H:i',
@@ -205,6 +252,14 @@ class DailyEntryController extends Controller
                 'heures_reelles' => 'required|numeric|min:0.25',
                 'travaux' => 'nullable|string|max:500',
             ]);
+
+            // Validation supplémentaire : heure_fin doit être après heure_debut
+            if (
+                isset($entry['heure_debut'], $entry['heure_fin']) &&
+                strtotime($entry['heure_fin']) <= strtotime($entry['heure_debut'])
+            ) {
+                $validator->errors()->add('heure_fin', 'L\'heure de fin doit être après l\'heure de début.');
+            }
 
             if ($validator->fails()) {
                 return redirect()->back()
@@ -223,18 +278,59 @@ class DailyEntryController extends Controller
             }
         }
 
+        // VÉRIFICATION : Si la date OU l'utilisateur a changé, vérifier qu'il n'existe pas déjà une entrée pour cette combinaison
+        $hasDateOrUserChanged = ($dailyEntry->jour->toDateString() !== $request->jour) ||
+            ($dailyEntry->user_id != $request->user_id);
+
+        if ($hasDateOrUserChanged) {
+            $existingEntry = DailyEntry::where('user_id', $request->user_id)
+                ->whereDate('jour', $request->jour)
+                ->where('id', '!=', $dailyEntry->id)
+                ->first();
+
+            if ($existingEntry) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Une feuille de temps existe déjà pour cet utilisateur et cette date. 
+                        Veuillez choisir une autre date ou un autre utilisateur.');
+            }
+        }
+
         // Calcul du total des heures réelles
         $totalHeures = collect($request->time_entries)->sum('heures_reelles');
 
-        // Mise à jour de la feuille principale
-        $dailyEntry->update([
+        // Préparer les données de mise à jour
+        $updateData = [
             'user_id' => $validated['user_id'],
             'jour' => $validated['jour'],
             'heures_theoriques' => $validated['heures_theoriques'],
             'heures_reelles' => $totalHeures,
             'commentaire' => $validated['commentaire'] ?? null,
-            'statut' => $validated['statut'],
-        ]);
+        ];
+
+        // Mettre à jour uniquement si le statut est fourni (pour les responsables)
+        if ($request->has('statut') && auth()->user()->can('change-status', $dailyEntry)) {
+            $updateData['statut'] = $request->statut;
+
+            // Si validation ou refus, enregistrer qui et quand
+            if (in_array($request->statut, ['validé', 'refusé'])) {
+                $updateData['valide_par'] = auth()->id();
+                $updateData['valide_le'] = now();
+
+                if ($request->statut === 'refusé' && $request->has('motif_refus')) {
+                    $updateData['motif_refus'] = $request->motif_refus;
+                }
+            }
+        } else {
+            // Pour les utilisateurs normaux, remettre en "soumis" s'ils modifient
+            $updateData['statut'] = 'soumis';
+            $updateData['valide_par'] = null;
+            $updateData['valide_le'] = null;
+            $updateData['motif_refus'] = null;
+        }
+
+        // Mise à jour de la feuille principale
+        $dailyEntry->update($updateData);
 
         $existingIds = [];
 
@@ -267,11 +363,33 @@ class DailyEntryController extends Controller
             ->whereNotIn('id', $existingIds)
             ->delete();
 
+        // Message d'alerte selon qui fait la modification
+        $message = 'Feuille de temps mise à jour avec succès.';
+        $alertType = 'success';
+
+        if (auth()->user()->hasRole(['responsable', 'Directeur Général'])) {
+            if ($request->has('statut')) {
+                switch ($request->statut) {
+                    case 'validé':
+                        $message = 'Feuille de temps validée avec succès.';
+                        break;
+                    case 'refusé':
+                        $message = 'Feuille de temps refusée avec succès.';
+                        break;
+                    case 'soumis':
+                        $message = 'Feuille de temps modifiée et remise en attente de validation.';
+                        break;
+                }
+            }
+        } else {
+            // Utilisateur normal
+            $message = 'Feuille de temps modifiée et soumise pour validation.';
+        }
+
         return redirect()
             ->route('daily-entries.show', $dailyEntry)
-            ->with('success', 'Feuille de temps mise à jour avec succès.');
+            ->with($alertType, $message);
     }
-
     /**
      * Supprimer une feuille de temps
      */
@@ -400,38 +518,38 @@ class DailyEntryController extends Controller
         }
     }
 
-   
 
-public function pdf(DailyEntry $dailyEntry)
-{
-    // Chargement des relations
-    $dailyEntry->load(['user.poste', 'timeEntries.dossier']);
 
-    // Sécurité : si la feuille n'existe pas ou jour est null → erreur 404 propre
-    if (!$dailyEntry->exists || is_null($dailyEntry->jour)) {
-        abort(404, 'Feuille de temps non trouvée ou date invalide.');
+    public function pdf(DailyEntry $dailyEntry)
+    {
+        // Chargement des relations
+        $dailyEntry->load(['user.poste', 'timeEntries.dossier']);
+
+        // Sécurité : si la feuille n'existe pas ou jour est null → erreur 404 propre
+        if (!$dailyEntry->exists || is_null($dailyEntry->jour)) {
+            abort(404, 'Feuille de temps non trouvée ou date invalide.');
+        }
+
+        // Logo
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : null;
+
+        // Paramètres entreprise
+        $companySetting = CompanySetting::first();
+
+        // Nom du fichier sécurisé
+        $dateFile = Carbon::parse($dailyEntry->jour)->format('Y-m-d');
+        $filename = "feuille-temps-{$dateFile}.pdf";
+
+        $pdf = Pdf::loadView('pages.daily-entries.export.pdf1', [
+            'entry' => $dailyEntry,  // renommé en $entry dans la vue
+            'logoBase64' => $logoBase64,
+            'companySetting' => $companySetting,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream($filename);
+        // ou ->download($filename) si tu veux forcer le téléchargement
     }
-
-    // Logo
-    $logoPath = public_path('images/logo.png');
-    $logoBase64 = file_exists($logoPath)
-        ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
-        : null;
-
-    // Paramètres entreprise
-    $companySetting = CompanySetting::first();
-
-    // Nom du fichier sécurisé
-    $dateFile = Carbon::parse($dailyEntry->jour)->format('Y-m-d');
-    $filename = "feuille-temps-{$dateFile}.pdf";
-
-    $pdf = Pdf::loadView('pages.daily-entries.export.pdf1', [
-        'entry' => $dailyEntry,  // renommé en $entry dans la vue
-        'logoBase64' => $logoBase64,
-        'companySetting' => $companySetting,
-    ])->setPaper('a4', 'portrait');
-
-    return $pdf->stream($filename);
-    // ou ->download($filename) si tu veux forcer le téléchargement
-}
 }
