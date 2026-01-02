@@ -224,12 +224,6 @@ class DailyEntryController extends Controller
     /**
      * Mettre à jour une feuille de temps
      */
-    /**
-     * Mettre à jour une feuille de temps
-     */
-    /**
-     * Mettre à jour une feuille de temps
-     */
     public function update(Request $request, DailyEntry $dailyEntry)
     {
         // Validation de base - sans statut required
@@ -238,13 +232,12 @@ class DailyEntryController extends Controller
             'jour' => 'required|date',
             'heures_theoriques' => 'required|numeric|min:0|max:24',
             'commentaire' => 'nullable|string',
-            // 'statut' est enlevé de la validation car attribué automatiquement
             'time_entries' => 'required|array|min:1',
         ]);
 
         // Validation détaillée pour les time_entries
         foreach ($request->time_entries as $index => $entry) {
-            $validator = \Validator::make($entry, [
+            $validator = Validator::make($entry, [
                 'id' => ['nullable', 'exists:time_entries,id'],
                 'dossier_id' => 'required|exists:dossiers,id',
                 'heure_debut' => 'required|date_format:H:i',
@@ -279,7 +272,10 @@ class DailyEntryController extends Controller
         }
 
         // VÉRIFICATION : Si la date OU l'utilisateur a changé, vérifier qu'il n'existe pas déjà une entrée pour cette combinaison
-        $hasDateOrUserChanged = ($dailyEntry->jour->toDateString() !== $request->jour) ||
+        $existingJour = Carbon::parse($dailyEntry->jour)->toDateString();
+        $requestedJour = Carbon::parse($request->jour)->toDateString();
+
+        $hasDateOrUserChanged = ($existingJour !== $requestedJour) ||
             ($dailyEntry->user_id != $request->user_id);
 
         if ($hasDateOrUserChanged) {
@@ -518,8 +514,6 @@ class DailyEntryController extends Controller
         }
     }
 
-
-
     public function pdf(DailyEntry $dailyEntry)
     {
         // Chargement des relations
@@ -550,6 +544,5 @@ class DailyEntryController extends Controller
         ])->setPaper('a4', 'portrait');
 
         return $pdf->stream($filename);
-        // ou ->download($filename) si tu veux forcer le téléchargement
     }
 }

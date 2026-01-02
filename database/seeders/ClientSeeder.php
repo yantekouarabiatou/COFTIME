@@ -227,12 +227,14 @@ class ClientSeeder extends Seeder
             // Générer une référence unique basée sur le nom
             $reference = 'CLI-' . strtoupper(substr(preg_replace('/[^A-Z]/', '', $clientData['nom']), 0, 3)) . '-' . rand(1000, 9999);
 
-            Client::create(array_merge($clientData, [
-                // Générer un logo fictif (peut être remplacé par de vrais logos plus tard)
-                'logo' => $this->generateLogoUrl($clientData['nom']),
-                'created_at' => now()->subDays(rand(1, 365)),
-                'updated_at' => now(),
-            ]));
+            Client::updateOrCreate(
+                ['numero_siret' => $clientData['numero_siret']], // clé unique
+                array_merge($clientData, [
+                    'logo' => $this->generateLogoUrl($clientData['nom']),
+                    'created_at' => now()->subDays(rand(1, 365)),
+                    'updated_at' => now(),
+                ])
+            );
         }
 
         $this->command->info('👥 ' . count($clients) . ' clients créés avec succès !');

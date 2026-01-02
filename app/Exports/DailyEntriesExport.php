@@ -9,6 +9,7 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell; // ← Ajouté
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -17,17 +18,28 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use Carbon\Carbon;
 
-class DailyEntriesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithEvents, WithColumnFormatting
+class DailyEntriesExport implements
+    FromCollection,
+    WithHeadings,
+    WithMapping,
+    WithStyles,
+    WithEvents,
+    WithColumnFormatting,
+    WithCustomStartCell
 {
     protected $entries;
     protected $totalHeuresReelles = 0;
     protected $totalHeuresTheoriques = 0;
     protected $nombreJours = 0;
+    protected $userName;
+    protected $startDate;
+    protected $endDate;
 
     public function __construct($entries)
     {
         $this->entries = $entries;
         $this->calculerTotaux();
+        $this->extractUserInfo();
     }
 
     private function calculerTotaux()
@@ -37,6 +49,17 @@ class DailyEntriesExport implements FromCollection, WithHeadings, WithMapping, W
         $this->nombreJours = $this->entries->count();
     }
 
+    private function extractUserInfo()
+    {
+        if ($this->entries->isNotEmpty()) {
+            $firstEntry = $this->entries->first();
+            $this->userName = $firstEntry->user->prenom . ' ' . $firstEntry->user->nom;
+
+            $this->startDate = $this->entries->min('jour');
+            $this->endDate = $this->entries->max('jour');
+        }
+    }
+
     public function collection()
     {
         return $this->entries;
@@ -44,21 +67,8 @@ class DailyEntriesExport implements FromCollection, WithHeadings, WithMapping, W
 
     public function headings(): array
     {
-        return [
-            'Date',
-            'Jour',
-            'Collaborateur',
-            'Poste',
-            'Heures Réelles',
-            'Heures Théoriques',
-            'Écart (h)',
-            'Taux (%)',
-            'Activités',
-            'Commentaire',
-            'Statut',
-            'Validée le',
-            'Motif Refus',
-        ];
+        // On retourne vide car les en-têtes sont écrits manuellement dans AfterSheet
+        return [];
     }
 
     public function map($entry): array
@@ -67,13 +77,14 @@ class DailyEntriesExport implements FromCollection, WithHeadings, WithMapping, W
             $heureDebut = $te->heure_debut ? Carbon::parse($te->heure_debut)->format('H:i') : '';
             $heureFin = $te->heure_fin ? Carbon::parse($te->heure_fin)->format('H:i') : '';
             $plage = $heureDebut && $heureFin ? "($heureDebut-$heureFin)" : '';
-            
+
             return '- ' . $te->dossier?->nom . ' ' . $plage . ' : ' . number_format($te->heures_reelles, 2) . 'h';
         })->implode("\n");
 
         $ecart = $entry->heures_reelles - $entry->heures_theoriques;
-        $taux = $entry->heures_theoriques > 0 ? 
-                ($entry->heures_reelles / $entry->heures_theoriques) * 100 : 0;
+        $taux = $entry->heures_theoriques > 0
+                ? ($entry->heures_reelles / $entry->heures_theoriques) * 100
+                : 0;
 
         return [
             $entry->jour->format('d/m/Y'),
@@ -92,77 +103,34 @@ class DailyEntriesExport implements FromCollection, WithHeadings, WithMapping, W
         ];
     }
 
+    // Les données commencent en A5
+    public function startCell(): string
+    {
+        return 'A5';
+    }
+
     public function styles(Worksheet $sheet)
     {
-        // Styles généraux
-        $sheet->getDefaultRowDimension()->setRowHeight(20);
+        $sheet->getDefaultRowDimension()->setRowHeight(22);
         $sheet->getStyle('A:M')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle('I:I')->getAlignment()->setWrapText(true); // Seulement pour les activités
-        
+        $sheet->getStyle('I:I')->getAlignment()->setWrapText(true);
+
         // Largeurs des colonnes
-        $sheet->getColumnDimension('A')->setWidth(12); // Date
-        $sheet->getColumnDimension('B')->setWidth(12); // Jour
-        $sheet->getColumnDimension('C')->setWidth(25); // Collaborateur
-        $sheet->getColumnDimension('D')->setWidth(20); // Poste
-        $sheet->getColumnDimension('E')->setWidth(12); // Heures Réelles
-        $sheet->getColumnDimension('F')->setWidth(12); // Heures Théoriques
-        $sheet->getColumnDimension('G')->setWidth(10); // Écart
-        $sheet->getColumnDimension('H')->setWidth(10); // Taux
-        $sheet->getColumnDimension('I')->setWidth(40); // Activités
-        $sheet->getColumnDimension('J')->setWidth(25); // Commentaire
-        $sheet->getColumnDimension('K')->setWidth(12); // Statut
-        $sheet->getColumnDimension('L')->setWidth(15); // Validée le
-        $sheet->getColumnDimension('M')->setWidth(25); // Motif Refus
+        $sheet->getColumnDimension('A')->setWidth(13);
+        $sheet->getColumnDimension('B')->setWidth(14);
+        $sheet->getColumnDimension('C')->setWidth(28);
+        $sheet->getColumnDimension('D')->setWidth(22);
+        $sheet->getColumnDimension('E')->setWidth(15);
+        $sheet->getColumnDimension('F')->setWidth(16);
+        $sheet->getColumnDimension('G')->setWidth(12);
+        $sheet->getColumnDimension('H')->setWidth(11);
+        $sheet->getColumnDimension('I')->setWidth(45);
+        $sheet->getColumnDimension('J')->setWidth(28);
+        $sheet->getColumnDimension('K')->setWidth(13);
+        $sheet->getColumnDimension('L')->setWidth(17);
+        $sheet->getColumnDimension('M')->setWidth(28);
 
-        // Toutes les lignes en blanc (pas d'alternance)
-        $lastRow = $this->entries->count() + 2; // +2 pour l'en-tête
-        $dataRange = 'A3:M' . $lastRow;
-        $sheet->getStyle($dataRange)->getFill()
-            ->setFillType(Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FFFFFFFF');
-
-        // Bordures pour les données
-        $sheet->getStyle($dataRange)->applyFromArray([
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['argb' => 'FFCCCCCC'],
-                ],
-            ],
-        ]);
-
-        // Alignement spécifique
-        $sheet->getStyle('A3:A' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // Date
-        $sheet->getStyle('B3:B' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // Jour
-        $sheet->getStyle('E3:G' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT); // Heures
-        $sheet->getStyle('H3:H' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // Taux
-        $sheet->getStyle('K3:K' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // Statut
-        $sheet->getStyle('L3:L' . $lastRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // Validée le
-
-        return [
-            // En-têtes de colonnes (Ligne 2)
-            2 => [
-                'font' => [
-                    'bold' => true, 
-                    'size' => 11, 
-                    'color' => ['argb' => 'FFFFFFFF']
-                ],
-                'fill' => [
-                    'fillType' => Fill::FILL_SOLID,
-                    'startColor' => ['argb' => 'FF2E75B6'] // Bleu plus clair
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical' => Alignment::VERTICAL_CENTER
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['argb' => 'FFFFFFFF'],
-                    ],
-                ],
-            ],
-        ];
+        return [];
     }
 
     public function registerEvents(): array
@@ -170,68 +138,117 @@ class DailyEntriesExport implements FromCollection, WithHeadings, WithMapping, W
         return [
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
-                $lastDataRow = $this->entries->count() + 2; // Dernière ligne de données
-                
-                // Ligne de séparation avant les totaux
+
+                // Dernière ligne de données (ligne 5 + nombre d'entrées)
+                $lastDataRow = $this->entries->count() + 4;
+
+                // ===== TITRE PRINCIPAL =====
+                $sheet->setCellValue('A1', 'RAPPORT DES ENTRÉES JOURNALIÈRES');
+                $sheet->mergeCells('A1:M1');
+                $sheet->getRowDimension(1)->setRowHeight(30);
+                $sheet->getStyle('A1')->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 16, 'color' => ['argb' => 'FF2E75B6']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]
+                ]);
+
+                // ===== SOUS-TITRE =====
+                $dateRange = '';
+                if ($this->startDate && $this->endDate) {
+                    $start = Carbon::parse($this->startDate)->format('d/m/Y');
+                    $end = Carbon::parse($this->endDate)->format('d/m/Y');
+                    $dateRange = $start === $end ? "Date : {$start}" : "Période : {$start} au {$end}";
+                }
+
+                $subTitle = "Collaborateur : {$this->userName}";
+                if ($dateRange) {
+                    $subTitle .= " | {$dateRange}";
+                }
+
+                $sheet->setCellValue('A2', $subTitle);
+                $sheet->mergeCells('A2:M2');
+                $sheet->getRowDimension(2)->setRowHeight(25);
+                $sheet->getStyle('A2')->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 12, 'color' => ['argb' => 'FF404040']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF2F2F2']]
+                ]);
+
+                // Ligne vide
+                $sheet->getRowDimension(3)->setRowHeight(10);
+
+                // ===== EN-TÊTES DES COLONNES =====
+                $headers = [
+                    'A4' => 'Date', 'B4' => 'Jour', 'C4' => 'Collaborateur', 'D4' => 'Poste',
+                    'E4' => 'Heures Réelles', 'F4' => 'Heures Théoriques', 'G4' => 'Écart (h)',
+                    'H4' => 'Taux (%)', 'I4' => 'Activités', 'J4' => 'Commentaire',
+                    'K4' => 'Statut', 'L4' => 'Validée le', 'M4' => 'Motif Refus',
+                ];
+
+                foreach ($headers as $cell => $value) {
+                    $sheet->setCellValue($cell, $value);
+                }
+
+                $sheet->getRowDimension(4)->setRowHeight(35);
+                $sheet->getStyle('A4:M4')->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 12, 'color' => ['argb' => 'FFFFFFFF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF2E75B6']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['argb' => 'FF2E75B6']]],
+                ]);
+
+                // ===== STYLE DES DONNÉES =====
+                $dataRange = 'A5:M' . $lastDataRow;
+                $sheet->getStyle($dataRange)->applyFromArray([
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFFFFF']],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD9D9D9']]],
+                ]);
+
+                $sheet->getStyle('A5:A' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('B5:B' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('E5:G' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle('H5:H' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('K5:K' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('L5:L' . $lastDataRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+                // ===== TOTAUX =====
                 $separatorRow = $lastDataRow + 1;
-                
-                // Ligne des totaux - les libellés au-dessus des valeurs
                 $totalLabelsRow = $separatorRow + 1;
                 $totalValuesRow = $totalLabelsRow + 1;
-                
-                // 1. Libellés des totaux (ligne au-dessus)
+
                 $sheet->setCellValue("A{$totalLabelsRow}", "TOTAL");
                 $sheet->setCellValue("E{$totalLabelsRow}", "Heures réelles");
                 $sheet->setCellValue("F{$totalLabelsRow}", "Heures théoriques");
                 $sheet->setCellValue("G{$totalLabelsRow}", "Écart total");
                 $sheet->setCellValue("H{$totalLabelsRow}", "Taux moyen");
                 $sheet->setCellValue("I{$totalLabelsRow}", "Nombre de jours");
-                
-                // 2. Valeurs des totaux (ligne en dessous)
+
                 $sheet->setCellValue("E{$totalValuesRow}", number_format($this->totalHeuresReelles, 2));
                 $sheet->setCellValue("F{$totalValuesRow}", number_format($this->totalHeuresTheoriques, 2));
-                
+
                 $ecartTotal = $this->totalHeuresReelles - $this->totalHeuresTheoriques;
                 $sheet->setCellValue("G{$totalValuesRow}", number_format($ecartTotal, 2));
-                
-                $tauxMoyen = $this->totalHeuresTheoriques > 0 ? 
-                            ($this->totalHeuresReelles / $this->totalHeuresTheoriques) * 100 : 0;
+
+                $tauxMoyen = $this->totalHeuresTheoriques > 0
+                    ? ($this->totalHeuresReelles / $this->totalHeuresTheoriques) * 100
+                    : 0;
                 $sheet->setCellValue("H{$totalValuesRow}", number_format($tauxMoyen, 1) . '%');
-                
+
                 $sheet->setCellValue("I{$totalValuesRow}", $this->nombreJours);
-                
-                // Style des libellés des totaux
+
                 $sheet->getStyle("A{$totalLabelsRow}:I{$totalLabelsRow}")->applyFromArray([
                     'font' => ['bold' => true],
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['argb' => 'FFF2F2F2'] // Gris clair
-                    ],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFF2F2F2']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
                 ]);
-                
-                // Style des valeurs des totaux
+
                 $sheet->getStyle("A{$totalValuesRow}:I{$totalValuesRow}")->applyFromArray([
                     'font' => ['bold' => true, 'size' => 11],
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['argb' => 'FFE2EFDA'] // Vert clair
-                    ],
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => Border::BORDER_THIN,
-                            'color' => ['argb' => 'FF95B3D7'],
-                        ],
-                    ],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE2EFDA']],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FF95B3D7']]],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
                 ]);
-                
-                // Format numérique pour les valeurs
-                $sheet->getStyle("E{$totalValuesRow}:G{$totalValuesRow}")
-                    ->getNumberFormat()
-                    ->setFormatCode(NumberFormat::FORMAT_NUMBER_00);
-                
-                // Statistiques par statut (en dessous des totaux)
+
+                // ===== STATISTIQUES PAR STATUT =====
                 $statsStartRow = $totalValuesRow + 2;
                 $sheet->setCellValue("A{$statsStartRow}", "STATISTIQUES PAR STATUT");
                 $sheet->mergeCells("A{$statsStartRow}:D{$statsStartRow}");
@@ -239,62 +256,51 @@ class DailyEntriesExport implements FromCollection, WithHeadings, WithMapping, W
                     'font' => ['bold' => true, 'size' => 12],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
                 ]);
-                
-                // Calculer les statistiques par statut
+
                 $statsByStatus = [];
                 foreach ($this->entries as $entry) {
                     $status = $entry->statut;
                     if (!isset($statsByStatus[$status])) {
-                        $statsByStatus[$status] = [
-                            'count' => 0,
-                            'total_heures' => 0
-                        ];
+                        $statsByStatus[$status] = ['count' => 0, 'total_heures' => 0];
                     }
                     $statsByStatus[$status]['count']++;
                     $statsByStatus[$status]['total_heures'] += $entry->heures_reelles;
                 }
-                
-                // Afficher les statistiques
+
                 $statsRow = $statsStartRow + 1;
                 foreach ($statsByStatus as $status => $data) {
                     $sheet->setCellValue("A{$statsRow}", ucfirst($status) . ":");
                     $sheet->setCellValue("B{$statsRow}", $data['count'] . " jour(s)");
                     $sheet->setCellValue("C{$statsRow}", number_format($data['total_heures'], 2) . " heures");
-                    
-                    // Style des statistiques
+
                     $sheet->getStyle("A{$statsRow}:C{$statsRow}")->applyFromArray([
                         'font' => ['bold' => true],
-                        'fill' => [
-                            'fillType' => Fill::FILL_SOLID,
-                            'startColor' => ['argb' => 'FFFCE4D6'] // Orange clair
-                        ],
-                        'borders' => [
-                            'allBorders' => [
-                                'borderStyle' => Border::BORDER_THIN,
-                                'color' => ['argb' => 'FFE2EFDA'],
-                            ],
-                        ],
+                        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFCE4D6']],
+                        'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFE2EFDA']]],
                     ]);
-                    
+
                     $statsRow++;
                 }
-                
-                // Date d'export
+
+                // ===== DATE D'EXPORT =====
                 $exportDateRow = $statsRow + 1;
-                $sheet->setCellValue("M{$exportDateRow}", "Exporté le " . now()->format('d/m/Y H:i'));
+                $sheet->setCellValue("M{$exportDateRow}", "Exporté le " . now()->format('d/m/Y à H:i'));
                 $sheet->getStyle("M{$exportDateRow}")->applyFromArray([
-                    'font' => ['italic' => true, 'size' => 9],
+                    'font' => ['italic' => true, 'size' => 9, 'color' => ['argb' => 'FF666666']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT]
                 ]);
-                
-                // Ajuster automatiquement la hauteur des lignes avec activités
-                for ($row = 3; $row <= $lastDataRow; $row++) {
-                    $activites = $sheet->getCell("I{$row}")->getValue();
-                    if ($activites && strpos($activites, "\n") !== false) {
-                        $lineCount = substr_count($activites, "\n") + 1;
-                        $sheet->getRowDimension($row)->setRowHeight(20 * $lineCount);
+
+                // Ajustement hauteur des lignes selon le nombre de lignes dans "Activités"
+                for ($row = 5; $row <= $lastDataRow; $row++) {
+                    $value = $sheet->getCell("I{$row}")->getValue();
+                    if ($value && strpos($value, "\n") !== false) {
+                        $lineCount = substr_count($value, "\n") + 1;
+                        $sheet->getRowDimension($row)->setRowHeight(22 * $lineCount);
                     }
                 }
+
+                // ===== FIGER L'EN-TÊTE =====
+                $sheet->freezePane('A5'); // Tout ce qui est au-dessus de A5 reste fixe
             },
         ];
     }
@@ -302,10 +308,10 @@ class DailyEntriesExport implements FromCollection, WithHeadings, WithMapping, W
     public function columnFormats(): array
     {
         return [
-            'E' => NumberFormat::FORMAT_NUMBER_00, // Heures Réelles
-            'F' => NumberFormat::FORMAT_NUMBER_00, // Heures Théoriques
-            'G' => NumberFormat::FORMAT_NUMBER_00, // Écart
-            'H' => NumberFormat::FORMAT_PERCENTAGE_00, // Taux
+            'E' => NumberFormat::FORMAT_NUMBER_00,
+            'F' => NumberFormat::FORMAT_NUMBER_00,
+            'G' => NumberFormat::FORMAT_NUMBER_00,
+            'H' => NumberFormat::FORMAT_PERCENTAGE_00,
         ];
     }
 }
