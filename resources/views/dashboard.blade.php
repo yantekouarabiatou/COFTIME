@@ -360,7 +360,7 @@
 
 /* Carte gradient */
 .gradient-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #244584 0%, #4b79c8 100%);
     border: none;
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
