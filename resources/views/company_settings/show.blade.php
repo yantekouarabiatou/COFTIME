@@ -6,10 +6,10 @@
 <section class="section">
     <div class="section-body">
         <div class="row justify-content-center">
-            <div class="col-12 col-lg-10 col-xl-12">
+            <div class="col-12 col-xl-12">
 
-                <div class="card card-large-header shadow-lg">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+                <div class="card card-primary shadow-lg">
+                    <div class="card-header text-white d-flex justify-content-between align-items-center py-3" style="background-color:#244584">
                         <h4 class="mb-0 text-white"><i class="fas fa-cogs mr-2"></i> Paramètres de l'Entreprise</h4>
                         <a href="{{ route('settings.edit') }}" class="btn btn-warning btn-icon icon-left">
                             <i class="fas fa-pencil-alt"></i> Modifier les Paramètres

@@ -261,7 +261,7 @@
     }
 
     .bg-gradient-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #244584 0%, #764ba2 100%);
     }
 
     .badge-light-subtle {

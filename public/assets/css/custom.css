@@ -1,4 +1,70 @@
+/* CUSTOMISATION COULEUR #244584 POUR COFIMA */
+:root {
+    --primary-color: #244584;
+    --primary-dark: #1a3461;
+    --primary-light: #2d5aa8;
+}
 
-/*# sourceMappingURL=data:application/json;charset=utf8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY3VzdG9tLmNzcyIsInNvdXJjZXMiOlsiY3VzdG9tLnNjc3MiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IiJ9 */
+/* Navbar */
+.navbar-bg {
+    background: linear-gradient(135deg, #244584, #2d5aa8) !important;
+}
 
-/*# sourceMappingURL=custom.css.map */
+/* Menu headers */
+.menu-header {
+    color: #244584 !important;
+}
+
+/* Icônes sidebar */
+.sidebar-menu li a i {
+    color: #244584 !important;
+}
+
+/* Hover sidebar */
+.sidebar-menu li a:hover {
+    background: rgba(36, 69, 132, 0.08) !important;
+    color: #244584 !important;
+}
+
+/* Active state sidebar */
+.sidebar-menu > li.active > a,
+.sidebar-menu .dropdown.active > a {
+    background: linear-gradient(135deg, #244584, #2d5aa8) !important;
+    color: #ffffff !important;
+}
+
+.sidebar-menu > li.active > a i,
+.sidebar-menu .dropdown.active > a i {
+    color: #ffffff !important;
+}
+
+/* Dropdown submenu active */
+.dropdown-menu li.active a {
+    color: #244584 !important;
+    font-weight: 600;
+}
+
+/* User dropdown header */
+.dropdown-menu .dropdown-header {
+    background: linear-gradient(135deg, #244584, #2d5aa8) !important;
+}
+
+/* Boutons primary */
+.btn-primary {
+    background: linear-gradient(135deg, #244584, #2d5aa8) !important;
+    border-color: #244584 !important;
+}
+
+/* Liens primary */
+.text-primary {
+    color: #244584 !important;
+}
+
+/* Background primary */
+.bg-primary {
+    background: #244584 !important;
+}
+.card .card-primary {
+    background:  #244584 !important;
+    color: #ffffff !important;
+}
