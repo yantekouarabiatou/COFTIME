@@ -23,7 +23,6 @@
                         @forelse($logs as $log)
                             <div class="activity">
                                 <div class="activity-icon bg-{{ $log->action_color }} text-white shadow-primary">
-                                    {{-- CORRECTION ICI : Utiliser $log->icon au lieu de $log->icon() --}}
                                     <i class="fas {{ $log->icon }}"></i>
                                 </div>
 
@@ -75,7 +74,7 @@
                             </div>
                         @endforelse
 
-                        <div class="mt-4 d-flex justify-content-center">
+                        <div class="mt-4 d-flex justify-content-center"style="flex-direction: column; align-items: center; background-color: #244584; padding: 10px; border-radius: 5px;">
                             {{ $logs->links('pagination::bootstrap-4') }}
                         </div>
                     </div>

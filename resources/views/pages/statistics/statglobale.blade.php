@@ -350,7 +350,7 @@
 }
 
 .gradient-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #244584 0%, #164676 100%);
     border: none;
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
@@ -442,7 +442,7 @@ Chart.defaults.plugins.legend.labels.usePointStyle = true;
 $(document).ready(function() {
     loadEmployes();
     loadStats();
-    
+
     // Gestion du filtre période
     $('#filtre-periode').change(function() {
         const periode = $(this).val();
@@ -461,7 +461,7 @@ function loadEmployes() {
         success: function(data) {
             const select = $('#filtre-employe');
             select.find('option:not(:first)').remove();
-            
+
             data.forEach(emp => {
                 select.append(`<option value="${emp.id}">${emp.nom_complet}</option>`);
             });
@@ -476,7 +476,7 @@ function applyFilters() {
         date_debut: $('#date-debut').val() || null,
         date_fin: $('#date-fin').val() || null
     };
-    
+
     loadStats();
     updateFilterInfo();
 }
@@ -487,14 +487,14 @@ function resetFilters() {
     $('#date-debut, #date-fin').val('');
     $('#filtre-dates, #filtre-dates-fin').hide();
     $('#filtre-info').hide();
-    
+
     currentFilters = {
         periode: 'mois',
         user_id: null,
         date_debut: null,
         date_fin: null
     };
-    
+
     loadStats();
 }
 
@@ -502,10 +502,10 @@ function updateFilterInfo() {
     const periode = currentFilters.periode;
     const employe = $('#filtre-employe option:selected').text();
     const hasFilters = currentFilters.user_id || periode !== 'mois';
-    
+
     if (hasFilters) {
         let details = [];
-        
+
         if (periode === 'jour') details.push('Aujourd\'hui');
         else if (periode === 'semaine') details.push('Cette semaine');
         else if (periode === 'mois') details.push('Ce mois');
@@ -513,11 +513,11 @@ function updateFilterInfo() {
         else if (periode === 'personnalise') {
             details.push(`Du ${currentFilters.date_debut} au ${currentFilters.date_fin}`);
         }
-        
+
         if (currentFilters.user_id) {
             details.push(`Employé: ${employe}`);
         }
-        
+
         $('#filtre-details').text(details.join(' • '));
         $('#filtre-info').show();
     } else {
@@ -545,7 +545,7 @@ function loadStats() {
         success: function(response) {
             console.log('Stats data:', response);
             const stats = response.stats;
-            
+
             updateGlobalStats(stats.totaux);
             updateClassementHeures(stats.classement_employes);
             updateClassementConges(stats.classement_conges);
@@ -570,33 +570,33 @@ function loadStats() {
 function updateGlobalStats(totaux) {
     $('#stat-employes').text(totaux.total_employes);
     $('#stat-employes-actifs').text(totaux.employes_actifs + ' actifs');
-    
+
     $('#stat-heures').text(totaux.total_heures + 'h');
-    $('#stat-moyenne').text(totaux.moyenne_heures_employe ? 
+    $('#stat-moyenne').text(totaux.moyenne_heures_employe ?
         'Moyenne: ' + totaux.moyenne_heures_employe + 'h/employé' : '');
-    
+
     $('#stat-dossiers').text(totaux.total_dossiers);
     $('#stat-dossiers-actifs').text(totaux.dossiers_actifs + ' actifs');
-    
+
     $('#stat-conges').text(totaux.total_conges);
     $('#stat-conges-cours').text(totaux.conges_en_cours + ' en cours');
 }
 
 function updateClassementHeures(data) {
     const tbody = $('#classement-heures');
-    
+
     if (!data || data.length === 0) {
         tbody.html('<tr><td colspan="4" class="text-center py-3 text-muted">Aucune donnée</td></tr>');
         return;
     }
-    
+
     let html = '';
     data.forEach((emp, index) => {
         let badgeClass = '';
         if (emp.rang === 1) badgeClass = 'badge-rang-1';
         else if (emp.rang === 2) badgeClass = 'badge-rang-2';
         else if (emp.rang === 3) badgeClass = 'badge-rang-3';
-        
+
         html += `
             <tr onclick="viewEmployeDetails(${emp.id})" style="cursor: pointer;">
                 <td>
@@ -615,25 +615,25 @@ function updateClassementHeures(data) {
             </tr>
         `;
     });
-    
+
     tbody.html(html);
 }
 
 function updateClassementConges(data) {
     const tbody = $('#classement-conges');
-    
+
     if (!data || data.length === 0) {
         tbody.html('<tr><td colspan="4" class="text-center py-3 text-muted">Aucune donnée</td></tr>');
         return;
     }
-    
+
     let html = '';
     data.forEach((emp, index) => {
         let badgeClass = '';
         if (emp.rang === 1) badgeClass = 'badge-rang-1';
         else if (emp.rang === 2) badgeClass = 'badge-rang-2';
         else if (emp.rang === 3) badgeClass = 'badge-rang-3';
-        
+
         html += `
             <tr onclick="viewEmployeDetails(${emp.id})" style="cursor: pointer;">
                 <td>
@@ -652,13 +652,13 @@ function updateClassementConges(data) {
             </tr>
         `;
     });
-    
+
     tbody.html(html);
 }
 
 function updateChartEvolution(data) {
     destroyChart('chartEvolution');
-    
+
     const ctx = document.getElementById('chartEvolution');
     charts.evolution = new Chart(ctx, {
         type: 'line',
@@ -694,7 +694,7 @@ function updateChartEvolution(data) {
 
 function updateChartDossiers(data) {
     destroyChart('chartDossiers');
-    
+
     const ctx = document.getElementById('chartDossiers');
     charts.dossiers = new Chart(ctx, {
         type: 'bar',
@@ -722,10 +722,10 @@ function updateChartDossiers(data) {
 
 function updateChartConges(data) {
     destroyChart('chartConges');
-    
+
     const ctx = document.getElementById('chartConges');
     const colors = ['#6777ef', '#ffa426', '#47c363', '#fc544b'];
-    
+
     charts.conges = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -748,7 +748,7 @@ function updateChartConges(data) {
 
 function updateChartMensuel(data) {
     destroyChart('chartMensuel');
-    
+
     const ctx = document.getElementById('chartMensuel');
     charts.mensuel = new Chart(ctx, {
         type: 'bar',
@@ -775,16 +775,16 @@ function updateChartMensuel(data) {
 
 function updateChartValidation(data) {
     destroyChart('chartValidation');
-    
+
     const ctx = document.getElementById('chartValidation');
     const colors = {
         'soumis': '#3abaf4',
         'valide': '#47c363',
         'refuse': '#fc544b'
     };
-    
+
     const bgColors = data.statuts.map(s => colors[s] || '#95a5a6');
-    
+
     charts.validation = new Chart(ctx, {
         type: 'pie',
         data: {
@@ -815,7 +815,7 @@ function updateChartValidation(data) {
 
 function updateChartJoursSemaine(data) {
     destroyChart('chartJoursSemaine');
-    
+
     const ctx = document.getElementById('chartJoursSemaine');
     charts.joursSemaine = new Chart(ctx, {
         type: 'radar',
@@ -955,13 +955,13 @@ function exportStats() {
     }).then((result) => {
         if (result.isConfirmed) {
             const exportType = result.value;
-            
+
             // Préparer les données pour l'export
             const params = new URLSearchParams({
                 ...currentFilters,
                 type: exportType
             });
-            
+
             // Simuler le téléchargement (à implémenter côté serveur)
             $.ajax({
                 url: '/admin/statistiques/export?' + params.toString(),

@@ -6,7 +6,7 @@
     <section class="section">
         <div class="section-body">
             <div class="row">
-                <div class="col-12 col-md-10 offset-md-1 col-lg-10 ">
+                <div class="col-12 col-md-12 offset-md-1 col-lg-12 ">
                     <div class="card card-primary shadow-lg">
                         <div class="card-header">
                             <h4><i class="fas fa-edit mr-1"></i> Modification des Paramètres de l'Entreprise</h4>

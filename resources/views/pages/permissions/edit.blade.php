@@ -6,18 +6,18 @@
 <style>
     /* Bordure colorée pour identifier les cartes facilement */
     .border-left-primary {
-        border-left: 4px solid #4e73df !important;
+        border-left: 4px solid #244584 !important;
     }
 
     /* Couleur du checkbox quand coché */
     .custom-checkbox .custom-control-input:checked ~ .custom-control-label::before {
-        background-color: #4e73df;
-        border-color: #4e73df;
+        background-color: #244584;
+        border-color: #265cbf;
     }
 
     /* Style subtil pour le header de la carte */
     .card-header {
-        background-color: #f8f9fc;
+        background-color: #244584;
         border-bottom: 1px solid #e3e6f0;
     }
 
