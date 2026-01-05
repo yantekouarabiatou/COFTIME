@@ -1,231 +1,255 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Inscription</title>
+    <title>Inscription - COFIMA</title>
 
-    <!-- Liens CORRECTS pour Bootstrap -->
+    <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
     <style>
+        :root {
+            --primary-color: #1A237E;
+            --primary-light: #3949AB;
+            --accent-color: #304FFE;
+            --bg-gradient-start: #ffffff;
+            --bg-gradient-end: #e1dde5;
+        }
+
         body {
-            color: #070920;
-            overflow-x: hidden;
-            height: 100%;
-            background-color: #B0BEC5;
-            background-repeat: no-repeat;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
-        .card0 {
-            box-shadow: 0px 4px 8px 0px #757575;
-            border-radius: 0px;
-        }
-
-        .logo {
-            margin: 5px;
-            height: auto;
-            max-width: 280px;
-            width: auto;
-            image-rendering: -webkit-optimize-contrast;
-        }
-
-        .image {
-            width: 360px;
-            height: 280px;
-        }
-
-        .text-sm {
-            font-size: 14px !important;
-        }
-
-        .btn-blue {
-            background-color: #1A237E;
+        .auth-container {
             width: 100%;
+            max-width: 1100px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.3);
+            display: flex;
+            overflow: hidden;
+            min-height: 650px;
+        }
+
+        /* LEFT */
+        .auth-left {
+            flex: 1;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            padding: 60px 40px;
             color: #fff;
-            border-radius: 2px;
-            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
-        .btn-blue:hover {
-            background-color: #9c9797;
+        .logo-container img {
+            max-width: 200px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.2);
         }
 
-        .bg-blue {
+        .welcome-text h1 {
+            font-size: 2.3rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .welcome-text p {
+            opacity: .9;
+            text-align: center;
+        }
+
+        .illustration i {
+            font-size: 110px;
+            opacity: .3;
+            margin-top: 40px;
+        }
+
+        /* RIGHT */
+        .auth-right {
+            flex: 1;
+            padding: 60px 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .auth-header h2 {
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .auth-header p {
+            color: #666;
+            font-size: .95rem;
+        }
+
+        .form-control,
+        .form-select {
+            padding: 14px 15px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px rgba(48,79,254,.1);
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
             color: #fff;
-            background-color: #1A237E;
-        }
-
-        input,
-        select {
-            padding: 10px 12px;
-            border: 1px solid lightgrey;
-            border-radius: 2px;
-            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
             width: 100%;
-            box-sizing: border-box;
-            color: #2C3E50;
-            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(26,35,126,.3);
         }
 
-        input:focus,
-        select:focus {
-            border: 1px solid #304FFE;
-            outline: none;
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
         }
 
-        @media (max-width: 991px) {
-            .logo {
-                margin-left: 0;
-            }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #999;
+            font-size: .85rem;
+        }
 
-            .image {
-                width: 300px;
-                height: 220px;
-            }
+        @media(max-width: 968px){
+            .auth-container { flex-direction: column; }
         }
     </style>
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body>
-    <div class="container-fluid px-1 px-md-5 py-5 mx-auto">
-        <div class="card card0 border-0">
-            <div class="row d-flex">
-                <div class="col-lg-6">
-                    <div class="card1 pb-5">
-                        <div class="row justify-content-center justify-content-lg-start">
-                            <img src="{{ asset('assets/img/logo_cofima_bon.jpg') }}" alt="Logo Cofima"
-                                class="logo img-fluid">
-                        </div>
-                        <div class="row px-3 justify-content-center mt-4 mb-5">
-                            <img src="{{ asset('assets/img/uNGdWHi.png') }}" class="image">
-                        </div>
-                    </div>
-                </div>
 
-                <div class="col-lg-6">
-                    <div class="card2 card border-0 px-4 py-5">
+<div class="auth-container">
 
-                        <div class="row mt-4 px-3 text-center">
-                            <h2 style="color: #1A237E; font-size: 2rem;"><strong>Inscription</strong></h2>
-                        </div>
+    <!-- LEFT -->
+    <div class="auth-left">
+        <div class="logo-container">
+            <img src="{{ asset('assets/img/logo_cofima_bon.jpg') }}" alt="COFIMA">
+        </div>
 
-                        <x-auth-session-status class="mt-4 text-center text-success" :status="session('status')" />
+        <div class="welcome-text">
+            <h1>Créer un compte</h1>
+            <p>Rejoignez la plateforme sécurisée COFIMA</p>
+        </div>
 
-                        @if ($errors->any())
-                            <div class="alert alert-danger mt-3">
-                                <ul class="mb-0">
-                                    @foreach ($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-
-                        <form method="POST" action="{{ route('register') }}">
-                            @csrf
-
-                            <div class="row px-3">
-                                <div class="col-md-6">
-                                    <label class="mb-1">
-                                        <h6 class="mb-0 text-sm">Nom</h6>
-                                    </label>
-                                    <input type="text" name="nom" value="{{ old('nom') }}"
-                                        class="form-control @error('nom') is-invalid @enderror" required autofocus>
-                                    @error('nom') <small class="text-danger">{{ $message }}</small> @enderror
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="mb-1">
-                                        <h6 class="mb-0 text-sm">Prénom</h6>
-                                    </label>
-                                    <input type="text" name="prenom" value="{{ old('prenom') }}"
-                                        class="form-control @error('prenom') is-invalid @enderror" required>
-                                    @error('prenom') <small class="text-danger">{{ $message }}</small> @enderror
-                                </div>
-                            </div>
-
-                            <div class="row px-3">
-                                <label class="mb-1">
-                                    <h6 class="mb-0 text-sm">Nom d'utilisateur</h6>
-                                </label>
-                                <input type="text" name="username" value="{{ old('username') }}"
-                                    class="form-control @error('username') is-invalid @enderror" required>
-                                @error('username') <small class="text-danger">{{ $message }}</small> @enderror
-                                </div>
-
-                            <div class="row px-3">
-                                <label class="mb-1">
-                                    <h6 class="mb-0 text-sm">Email</h6>
-                                </label>
-                                <input type="email" name="email" value="{{ old('email') }}"
-                                    class="form-control @error('email') is-invalid @enderror" required
-                                    autocomplete="username">
-                                @error('email') <small class="text-danger">{{ $message }}</small> @enderror
-                            </div>
-
-                            <div class="row px-3">
-                                <label class="mb-1">
-                                    <h6 class="mb-0 text-sm">Poste</h6>
-                                </label>
-                                <select name="poste_id" class="form-control @error('poste_id') is-invalid @enderror">
-                                    <option value="">-- Choisir un poste --</option>
-                                    @foreach(\App\Models\Poste::all() as $poste)
-                                        <option value="{{ $poste->id }}" {{ old('poste_id') == $poste->id ? 'selected' : '' }}>
-                                            {{ $poste->libelle ?? $poste->intitule }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('poste_id') <small class="text-danger">{{ $message }}</small> @enderror
-                            </div>
-
-                            <div class="row px-3">
-                                <label class="mb-1">
-                                    <h6 class="mb-0 text-sm">Mot de passe</h6>
-                                </label>
-                                <input type="password" name="password"
-                                    class="form-control @error('password') is-invalid @enderror" required
-                                    autocomplete="new-password">
-                                @error('password') <small class="text-danger">{{ $message }}</small> @enderror
-                            </div>
-
-                            <div class="row px-3">
-                                <label class="mb-1">
-                                    <h6 class="mb-0 text-sm">Confirmer le mot de passe</h6>
-                                </label>
-                                <input type="password" name="password_confirmation" class="form-control" required
-                                    autocomplete="new-password">
-                            </div>
-
-                            <div class="row px-3 mt-4">
-                                <button type="submit" class="btn btn-blue">Créer mon compte</button>
-                            </div>
-
-                            <div class="row px-3 mt-3 text-center">
-                                <small class="text-sm">
-                                    Déjà un compte ? <a href="{{ route('login') }}" class="text-decoration-underline">Se
-                                        connecter</a>
-                                </small>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-blue py-4">
-                <div class="row px-3">
-                    <small class="ml-4 ml-sm-5 mb-2">Copyright COFIMA © {{ date('Y') }}. Tous droits réservés.</small>
-                </div>
-            </div>
+        <div class="illustration">
+            <i class="fas fa-user-shield"></i>
         </div>
     </div>
 
-    <!-- Scripts JavaScript à la fin du body -->
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-</body>
+    <!-- RIGHT -->
+    <div class="auth-right">
 
+        <div class="auth-header mb-4">
+            <h2>Inscription</h2>
+            <p>Veuillez remplir les informations ci-dessous</p>
+        </div>
+
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('register') }}">
+            @csrf
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Nom</label>
+                    <input type="text" name="nom" value="{{ old('nom') }}"
+                        class="form-control @error('nom') is-invalid @enderror" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Prénom</label>
+                    <input type="text" name="prenom" value="{{ old('prenom') }}"
+                        class="form-control @error('prenom') is-invalid @enderror" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nom d'utilisateur</label>
+                <input type="text" name="username" value="{{ old('username') }}"
+                    class="form-control @error('username') is-invalid @enderror" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Email</label>
+                <input type="email" name="email" value="{{ old('email') }}"
+                    class="form-control @error('email') is-invalid @enderror" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Poste</label>
+                <select name="poste_id" class="form-select @error('poste_id') is-invalid @enderror">
+                    <option value="">-- Choisir un poste --</option>
+                    @foreach(\App\Models\Poste::all() as $poste)
+                        <option value="{{ $poste->id }}" {{ old('poste_id') == $poste->id ? 'selected' : '' }}>
+                            {{ $poste->libelle ?? $poste->intitule }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Mot de passe</label>
+                <input type="password" name="password"
+                    class="form-control @error('password') is-invalid @enderror" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Confirmer le mot de passe</label>
+                <input type="password" name="password_confirmation"
+                    class="form-control" required>
+            </div>
+
+            <button type="submit" class="btn-primary-custom">
+                <i class="fas fa-user-plus me-2"></i>
+                Créer mon compte
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <small>
+                Déjà un compte ?
+                <a href="{{ route('login') }}" class="text-decoration-underline">Se connecter</a>
+            </small>
+        </div>
+
+        <div class="footer">
+            COFIMA © {{ date('Y') }} — Tous droits réservés
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
