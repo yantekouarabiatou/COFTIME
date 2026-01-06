@@ -3,27 +3,41 @@
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h5 class="mb-1 font-weight-bold">
-                    <i class="fas fa-user-circle mr-2"></i>{{ $user->full_name }}
+                    <i class="fas fa-user-circle mr-2"></i>{{ $user->full_name ?? $user->nom . ' ' . $user->prenom }}
                 </h5>
-                <small class="text-white-50">Période du {{ $entries->first()->jour->format('d/m/Y') ?? '' }} au
-                    {{ $entries->last()->jour->format('d/m/Y') ?? '' }}</small>
+                <small class="text-white-50">
+                    @if($entries->count() > 0)
+                        Période du {{ $entries->first()->jour->format('d/m/Y') }} au
+                        {{ $entries->last()->jour->format('d/m/Y') }}
+                    @else
+                        Aucune donnée pour cette période
+                    @endif
+                </small>
             </div>
             <div class="text-right">
-                <div class="mb-1">
-                    <span class="badge badge-light badge-lg px-3 py-2">
-                        <i class="fas fa-clock mr-1"></i>
-                        Total : <strong>{{ $entries->sum('heures_reelles') }}h</strong>
+                @if($entries->count() > 0)
+                    <div class="mb-1">
+                        <span class="badge badge-light badge-lg px-3 py-2">
+                            <i class="fas fa-clock mr-1"></i>
+                            Total : <strong>{{ $entries->sum('heures_reelles') }}h</strong>
+                        </span>
+                    </div>
+                    <div>
+                        <span class="badge badge-light-subtle px-3 py-2">
+                            Théorique : {{ $entries->sum('heures_theoriques') }}h
+                        </span>
+                    </div>
+                @else
+                    <span class="badge badge-warning badge-lg px-3 py-2">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        Aucune activité
                     </span>
-                </div>
-                <div>
-                    <span class="badge badge-light-subtle px-3 py-2">
-                        Théorique : {{ $entries->sum('heures_theoriques') }}h
-                    </span>
-                </div>
+                @endif
             </div>
         </div>
     </div>
 
+    @if($entries->count() > 0)
     <div class="card-body p-0">
         <!-- Statistiques rapides -->
         <div class="row text-center py-3 bg-light border-bottom">
@@ -72,7 +86,6 @@
         </div>
 
         <div class="table-responsive p-3">
-            <!-- Remplacez la ligne avec l'ID unique par une classe commune -->
             <table class="table table-hover rapport-table align-middle rapport-datatable"
                 data-user-id="{{ $user->id }}">
                 <thead>
@@ -207,6 +220,13 @@
             </table>
         </div>
     </div>
+    @else
+    <div class="card-body text-center py-5">
+        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Aucune activité enregistrée pour cette période</h5>
+        <p class="text-muted">L'utilisateur n'a pas saisi de feuille de temps pour le mois sélectionné.</p>
+    </div>
+    @endif
 </div>
 
 <style>
