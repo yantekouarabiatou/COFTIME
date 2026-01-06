@@ -24,14 +24,21 @@ class DailyEntryController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
         $query = DailyEntry::with(['user', 'timeEntries.dossier.client']);
 
-        // Filtres
+        // Si l'utilisateur n'est pas admin, filtrer uniquement ses enregistrements
+        if (!$user->hasRole('admin')) {
+            $query->where('user_id', $user->id);
+        }
+
+        // Filtres supplémentaires
         if ($request->has('statut')) {
             $query->where('statut', $request->statut);
         }
 
-        if ($request->has('user')) {
+        if ($request->has('user') && $user->hasRole('admin')) {
+            // Seuls les admins peuvent filtrer par utilisateur
             $query->where('user_id', $request->user);
         }
 
@@ -40,19 +47,26 @@ class DailyEntryController extends Controller
         }
 
         // Pour les responsables : feuilles à valider
-        if ($request->has('pending') && auth()->user()->hasRole('Directeur Général')) {
+        if ($request->has('pending') && $user->hasRole('Directeur Général')) {
             $query->where('statut', 'soumis')
-                ->where('user_id', '!=', auth()->id()); // optionnel : exclure les siennes
+                ->where('user_id', '!=', $user->id);
         }
 
         $dailyEntries = $query->latest()->paginate(20);
 
-        // Calcul des statistiques globales (sur toutes les entrées, pas seulement la page)
-        $totalHours = DailyEntry::sum('heures_reelles');
-
-        $submittedCount = DailyEntry::where('statut', 'soumis')->count();
-        $validatedCount = DailyEntry::where('statut', 'validé')->count();
-        $rejectedCount  = DailyEntry::where('statut', 'refusé')->count();
+        // Calcul des statistiques globales avec les mêmes restrictions de rôle
+        if ($user->hasRole('admin')) {
+            $totalHours = DailyEntry::sum('heures_reelles');
+            $submittedCount = DailyEntry::where('statut', 'soumis')->count();
+            $validatedCount = DailyEntry::where('statut', 'validé')->count();
+            $rejectedCount = DailyEntry::where('statut', 'refusé')->count();
+        } else {
+            // Statistiques uniquement pour l'utilisateur connecté
+            $totalHours = DailyEntry::where('user_id', $user->id)->sum('heures_reelles');
+            $submittedCount = DailyEntry::where('user_id', $user->id)->where('statut', 'soumis')->count();
+            $validatedCount = DailyEntry::where('user_id', $user->id)->where('statut', 'validé')->count();
+            $rejectedCount = DailyEntry::where('user_id', $user->id)->where('statut', 'refusé')->count();
+        }
 
         return view('pages.daily-entries.index', compact(
             'dailyEntries',
@@ -287,7 +301,7 @@ class DailyEntryController extends Controller
             if ($existingEntry) {
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'Une feuille de temps existe déjà pour cet utilisateur et cette date. 
+                    ->with('error', 'Une feuille de temps existe déjà pour cet utilisateur et cette date.
                         Veuillez choisir une autre date ou un autre utilisateur.');
             }
         }

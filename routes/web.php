@@ -104,7 +104,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::get('/daily-entries/export', [DailyEntryController::class, 'export'])
-     ->name('daily-entries.export');
+        ->name('daily-entries.export');
 
     Route::get('/dashboard/data', [App\Http\Controllers\DashboardController::class, 'data'])->name('dashboard.data')->middleware('auth');
     Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
@@ -127,8 +127,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/roles/{role}', [RolePermissionController::class, 'destroy'])
             ->name('roles.destroy');
 
-            Route::get('/statistics/globale', [StatisticsController::class, 'index'])
-        ->name('stats.globale');
+        Route::get('/statistics/globale', [StatisticsController::class, 'index'])
+            ->name('stats.globale');
 
         Route::get('/statistics/data', [StatisticsController::class, 'globalStats'])
             ->name('stats.data');
@@ -204,7 +204,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/change-password', [UserProfileController::class, 'changePassword'])->name('change-password');
         });
 
-    Route::get('rapports/mensuel/{user?}/{year?}/{month?}', [RapportController::class, 'mensuel'])
+    Route::get('/rapports/mensuel', [RapportController::class, 'mensuel'])
         ->name('rapports.mensuel');
     Route::resource('dossiers', DossierController::class);
     // Routes Clients
@@ -231,7 +231,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/daily-entries/{dailyEntry}/pdf', [DailyEntryController::class, 'pdf'])
         ->name('daily-entries.pdf');
 
-  
+
     Route::prefix('settings')->group(function () {
         // Affiche les paramètres
         Route::get('/', [CompanySettingController::class, 'show'])->name('settings.show');
