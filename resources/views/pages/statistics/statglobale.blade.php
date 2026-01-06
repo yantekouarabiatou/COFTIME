@@ -59,7 +59,7 @@
                         </div>
                         <div class="col-md-3">
                             <label>Employé</label>
-                            <select class="form-control" id="filtre-employe">
+                            <select class="form-control select-employe" id="filtre-employe">
                                 <option value="">Tous les employés</option>
                             </select>
                         </div>
@@ -350,7 +350,7 @@
 }
 
 .gradient-card {
-    background: linear-gradient(135deg, #244584 0%, #164676 100%);
+    background: linear-gradient(135deg, #244584 0%, #4b79c8 100%);
     border: none;
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
@@ -454,20 +454,34 @@ $(document).ready(function() {
     });
 });
 
+$(document).ready(function () {
+    $('.select-employe').select2({
+        placeholder: "Rechercher un employé...",
+        allowClear: true,
+        width: '100%'
+    });
+});
+
+
 function loadEmployes() {
     $.ajax({
         url: '{{ route("admin.stats.employes") }}',
         method: 'GET',
         success: function(data) {
             const select = $('#filtre-employe');
-            select.find('option:not(:first)').remove();
+
+            select.empty().append('<option value="">Tous les employés</option>');
 
             data.forEach(emp => {
                 select.append(`<option value="${emp.id}">${emp.nom_complet}</option>`);
             });
+
+            // 🔥 Re-initialisation Select2 après AJAX
+            select.trigger('change');
         }
     });
 }
+
 
 function applyFilters() {
     currentFilters = {

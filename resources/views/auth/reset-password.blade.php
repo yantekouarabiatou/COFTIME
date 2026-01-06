@@ -136,7 +136,7 @@
         }
     </style>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/css/auth.css', 'resources/js/app.js'])
 </head>
 
 <body>
@@ -144,7 +144,7 @@
 <div class="login-container">
 
     <!-- LEFT -->
-    <div class="login-left">
+    <div class="login-left auth-left">
         <div class="logo-container">
             <img src="{{ asset('assets/img/logo_cofima_bon.jpg') }}" alt="COFIMA">
         </div>
@@ -154,7 +154,7 @@
             <p>Choisissez un mot de passe fort pour sécuriser votre compte</p>
         </div>
 
-        <div class="illustration">
+        <div class="auth-illustration">
             <i class="fas fa-shield-halved"></i>
         </div>
     </div>
