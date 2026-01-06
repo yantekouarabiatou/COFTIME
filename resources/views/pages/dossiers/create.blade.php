@@ -104,7 +104,7 @@
                             </div>
 
                             <div class="row">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Date d'ouverture <span class="text-danger">*</span></label>
                                         <input type="date" name="date_ouverture" class="form-control @error('date_ouverture') is-invalid @enderror"
@@ -114,7 +114,7 @@
                                         @enderror
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Date de clôture prévue</label>
                                         <input type="date" name="date_cloture_prevue" class="form-control @error('date_cloture_prevue') is-invalid @enderror"
@@ -124,16 +124,7 @@
                                         @enderror
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>Date de clôture réelle</label>
-                                        <input type="date" name="date_cloture_reelle" class="form-control @error('date_cloture_reelle') is-invalid @enderror"
-                                               value="{{ old('date_cloture_reelle') }}">
-                                        @error('date_cloture_reelle')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                </div>
+
                             </div>
 
                             <div class="row">
