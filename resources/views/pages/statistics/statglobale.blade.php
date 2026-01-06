@@ -20,9 +20,9 @@
                             <button class="btn btn-light rounded-pill mr-2" onclick="refreshStats()">
                                 <i class="fas fa-sync-alt"></i> Actualiser
                             </button>
-                            <button class="btn btn-success rounded-pill" onclick="exportStats()">
+                            <!-- <button class="btn btn-success rounded-pill" onclick="exportStats()">
                                 <i class="fas fa-download"></i> Exporter
-                            </button>
+                            </button> -->
                         </div>
                     </div>
                 </div>
