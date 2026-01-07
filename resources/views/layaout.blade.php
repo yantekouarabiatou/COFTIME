@@ -377,10 +377,54 @@
 
                             {{-- Dossiers --}}
                             @can(['voir les dossiers', 'créer des dossiers'])
-                                <li class="{{ request()->routeIs('dossiers.*') ? 'active' : '' }}">
-                                    <a href="{{ route('dossiers.index') }}" class="nav-link">
+                                <li class="dropdown {{ request()->routeIs('dossiers.*') || request()->routeIs('missions.*') ? 'active' : '' }}">
+                                    <a href="#" class="menu-toggle nav-link has-dropdown {{ request()->routeIs('dossiers.*') || request()->routeIs('missions.*') ? 'active' : '' }}">
                                         <i class="fas fa-folder-open"></i><span>Dossiers</span>
                                     </a>
+                                    <ul class="dropdown-menu" style="{{ request()->routeIs('dossiers.*') || request()->routeIs('missions.*') ? 'display: block;' : '' }}">
+                                        @can('voir les dossiers')
+                                            <li class="{{ request()->routeIs('dossiers.index') ? 'active' : '' }}">
+                                                <a class="nav-link" href="{{ route('dossiers.index') }}">
+                                                    <i class="fas fa-list"></i> Liste des dossiers
+                                                </a>
+                                            </li>
+                                        @endcan
+
+                                        @can('créer des dossiers')
+                                            <li class="{{ request()->routeIs('dossiers.create') ? 'active' : '' }}">
+                                                <a class="nav-link" href="{{ route('dossiers.create') }}">
+                                                    <i class="fas fa-plus-circle"></i> Nouveau dossier
+                                                </a>
+                                            </li>
+                                        @endcan
+
+                                        {{-- Séparateur --}}
+                                        <li><hr class="dropdown-divider"></li>
+
+                                        {{-- Nouvelles fonctionnalités d'analyse --}}
+                                        @can(['voir les rapports mensuels', 'voir tous les temps'])
+                                            <li class="dropdown-title">
+                                                <span class="" style="color: #2c5282"><i class="fas fa-chart-line"></i> ANALYSE & RAPPORTS</span>
+                                            </li>
+
+                                            <li class="{{ request()->routeIs('missions.analyse') ? 'active' : '' }}">
+                                                <a class="nav-link" href="{{ route('missions.analyse') }}">
+                                                    <i class="fas fa-chart-pie"></i> Analyse par mission
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="nav-link" href="#" data-toggle="modal" data-target="#exportModal">
+                                                    <i class="fas fa-file-pdf"></i> Rapport complet
+                                                </a>
+                                            </li>
+
+                                            <li>
+                                                <a class="nav-link" href="#" data-toggle="modal" data-target="#exportExcelModal">
+                                                    <i class="fas fa-file-excel"></i> Export Excel
+                                                </a>
+                                            </li>
+                                        @endcan
+                                    </ul>
                                 </li>
                             @endcan
 
@@ -725,6 +769,155 @@
             </footer>
         </div>
     </div>
+
+         <!-- Modal Export PDF -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="exportModalLabel">
+                    <i class="fas fa-file-pdf mr-2"></i> Exporter le rapport en PDF
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+
+            <form id="exportPdfForm" action="{{ route('missions.filtrer') }}" method="POST" target="_blank">
+                @csrf
+                <input type="hidden" name="export_format" value="pdf">
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="pdf_dossier_id">Dossier concerné <span class="text-danger">*</span></label>
+                        <select name="dossier_id" id="pdf_dossier_id" class="form-control select2" required style="width: 100%;">
+                            <option value="">-- Sélectionner un dossier --</option>
+                            @foreach(App\Models\Dossier::enCours()->orderBy('reference')->get() as $dossier)
+                                <option value="{{ $dossier->id }}">
+                                    {{ $dossier->reference }} — {{ $dossier->nom }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="pdf_date_debut">Date de début</label>
+                                <input type="date" name="date_debut" id="pdf_date_debut" class="form-control"
+                                       value="{{ date('Y-m-d', strtotime('-1 month')) }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="pdf_date_fin">Date de fin</label>
+                                <input type="date" name="date_fin" id="pdf_date_fin" class="form-control"
+                                       value="{{ date('Y-m-d') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pdf_type_rapport">Type de rapport</label>
+                        <select name="type_rapport" id="pdf_type_rapport" class="form-control select2" style="width: 100%;">
+                            <option value="complet" selected>Rapport complet (avec analyse détaillée)</option>
+                            <option value="simple">Rapport simple (liste des interventions)</option>
+                            <option value="statistiques">Statistiques seulement</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-pdf mr-2"></i> Générer le PDF
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Export Excel -->
+<div class="modal fade" id="exportExcelModal" tabindex="-1" aria-labelledby="exportExcelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="exportExcelModalLabel">
+                    <i class="fas fa-file-excel mr-2"></i> Exporter les données en Excel
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+
+            <form id="exportExcelForm" action="{{ route('missions.filtrer') }}" method="POST" target="_blank">
+                @csrf
+                <input type="hidden" name="export_format" value="excel">
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="excel_dossier_id">Dossier(s) à exporter</label>
+                        <select name="dossier_id" id="excel_dossier_id" class="form-control select2" style="width: 100%;">
+                            <option value="all">Tous les dossiers en cours</option>
+                            <optgroup label="Dossier spécifique">
+                                @foreach(App\Models\Dossier::enCours()->orderBy('reference')->get() as $dossier)
+                                    <option value="{{ $dossier->id }}">
+                                        {{ $dossier->reference }} — {{ $dossier->nom }}
+                                    </option>
+                                @endforeach
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Date de début</label>
+                                <input type="date" name="date_debut" class="form-control"
+                                       value="{{ date('Y-m-d', strtotime('-1 month')) }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Date de fin</label>
+                                <input type="date" name="date_fin" class="form-control"
+                                       value="{{ date('Y-m-d') }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contenu à inclure dans l'export</label>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="chk_personnels" name="include_personnels" checked>
+                            <label class="custom-control-label" for="chk_personnels">Liste des personnels intervenants</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="chk_temps" name="include_temps" checked>
+                            <label class="custom-control-label" for="chk_temps">Temps passé par jour et par personne</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="chk_stats" name="include_statistiques" checked>
+                            <label class="custom-control-label" for="chk_stats">Statistiques et totaux</label>
+                        </div>
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input" id="chk_autres" name="include_autres_missions">
+                            <label class="custom-control-label" for="chk_autres">Autres missions non liées</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-file-excel mr-2"></i> Exporter en Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
     <!-- 1. jQuery + Bootstrap + Stisla JS (app.min.js contient déjà jQuery) -->
     <script src="{{ asset('assets/js/app.min.js') }}"></script>
 
@@ -960,6 +1153,28 @@
             }
         })();
     </script>
+
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialisation Select2 sur tous les selects avec la classe .select2
+        $('.select2').select2({
+            theme: 'bootstrap4',
+            placeholder: "Sélectionner une option",
+            allowClear: true,
+            width: '100%'
+        });
+
+        // Optionnel : réinitialiser Select2 quand le modal se ferme (évite bugs d'affichage)
+        $('#exportModal, #exportExcelModal').on('hidden.bs.modal', function () {
+            $(this).find('.select2').select2('destroy').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            });
+        });
+    });
+    </script>
+    @endpush
     <!-- 6. TES SCRIPTS PERSONNALISÉS EN DERNIER ! -->
     @stack('scripts')
     @yield('scripts')
