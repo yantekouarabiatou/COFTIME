@@ -20,6 +20,7 @@ class DailyEntry extends Model
         'valide_par',
         'valide_le',
         'motif_refus',
+        'rendu'
     ];
 
     protected $casts = [
@@ -172,5 +173,5 @@ class DailyEntry extends Model
     {
         return $query->whereBetween('jour', [$debut, $fin]);
     }
-    
+
 }
