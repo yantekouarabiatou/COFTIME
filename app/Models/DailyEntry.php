@@ -20,7 +20,6 @@ class DailyEntry extends Model
         'valide_par',
         'valide_le',
         'motif_refus',
-        'rendu'
     ];
 
     protected $casts = [

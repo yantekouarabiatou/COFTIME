@@ -17,11 +17,12 @@ class TimeEntry extends Model
         'heure_fin',
         'heures_reelles',
         'travaux',
+        'rendu'
     ];
 
     protected $casts = [
-        'heure_debut'    => 'datetime:H:i:s',
-        'heure_fin'      => 'datetime:H:i:s',
+        'heure_debut'   => 'datetime:H:i:s',
+        'heure_fin'     => 'datetime:H:i:s',
         'heures_reelles' => 'decimal:2',
     ];
 
