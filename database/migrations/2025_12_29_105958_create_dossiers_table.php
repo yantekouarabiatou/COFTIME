@@ -49,6 +49,13 @@ return new class extends Migration
                   ->constrained()
                   ->cascadeOnDelete();
 
+            $table->decimal('heure_theorique_sans_weekend', 8, 2)
+                  ->nullable()
+                  ->comment('Heures théoriques sur jours ouvrables (8h/jour)');
+
+            $table->decimal('heure_theorique_avec_weekend', 8, 2)
+                  ->nullable()
+                  ->comment('Heures théoriques incluant week-ends (8h/jour)');
             $table->timestamps();
         });
     }

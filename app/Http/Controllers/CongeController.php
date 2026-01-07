@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Conge;
 use App\Models\User;
-use RealRashid\SweetAlert\Facades\Alert; // ← AJOUTÉ
+use RealRashid\SweetAlert\Facades\Alert;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
