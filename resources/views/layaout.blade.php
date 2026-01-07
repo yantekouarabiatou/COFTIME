@@ -613,13 +613,13 @@
                                     </li>
                                     @endcan
 
-                                    @can(['voir les rapports mensuels', 'voir tous les temps'])
+                                    <!-- @can(['voir les rapports mensuels', 'voir tous les temps'])
                                         <li class="{{ request()->routeIs('rapports.mensuel') ? 'active' : '' }}">
                                             <a class="nav-link" href="{{ route('rapports.mensuel') }}">
                                                 <i class="fas fa-clock"></i> Rapport des Temps
                                             </a>
                                         </li>
-                                    @endcan
+                                    @endcan -->
                                 </ul>
                             </li>
                         @endcan
