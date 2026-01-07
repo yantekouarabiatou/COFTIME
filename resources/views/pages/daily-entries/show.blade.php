@@ -102,7 +102,12 @@
                                             <h4>Heures théoriques</h4>
                                         </div>
                                         <div class="card-body">
-                                            {{ $dailyEntry->heures_theoriques }}h
+                                            @php
+                                                $heures = floor($dailyEntry->heures_theoriques);
+                                                $minutes = round(($dailyEntry->heures_theoriques - $heures) * 60);
+                                            @endphp
+
+                                            {{ $heures }}h {{ $minutes }}min
                                         </div>
                                     </div>
                                 </div>
@@ -117,11 +122,41 @@
                                             <h4>Heures réelles</h4>
                                         </div>
                                         <div class="card-body">
-                                            {{ $dailyEntry->heures_reelles }}h
+                                            @php
+                                                $heures = floor($dailyEntry->heures_reelles);
+                                                $minutes = round(($dailyEntry->heures_reelles - $heures) * 60);
+                                            @endphp
+
+                                            {{ $heures }}h {{ $minutes }}min
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            @php
+                                $heuresSup = max(0, $dailyEntry->heures_reelles - $dailyEntry->heures_theoriques);
+
+                                $hsHeures = floor($heuresSup);
+                                $hsMinutes = round(($heuresSup - $hsHeures) * 60);
+                            @endphp
+
+                            @if($dailyEntry->heures_reelles > $dailyEntry->heures_theoriques)
+                                <div class="col-md-3">
+                                    <div class="card card-statistic-1">
+                                        <div class="card-icon bg-success">
+                                            <i class="fas fa-plus-circle"></i>
+                                        </div>
+                                        <div class="card-wrap">
+                                            <div class="card-header">
+                                                <h4>Heures supplémentaires</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                {{ $hsHeures }}h {{ $hsMinutes }}min
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
                             <div class="col-md-3">
                                 <div class="card card-statistic-1">
                                     <div class="card-icon bg-{{ $dailyEntry->heures_reelles >= $dailyEntry->heures_theoriques ? 'success' : 'danger' }}">
@@ -189,8 +224,8 @@
                                                 <th>Dossier</th>
                                                 <th>Client</th>
                                                 <th>Heures</th>
-                                                <th>Période</th>
                                                 <th>Travaux réalisés</th>
+                                                <th>Rendu</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -209,23 +244,23 @@
                                                 </td>
                                                 <td>
                                                     <span class="badge badge-light" style="font-size: 1rem;">
-                                                        {{ $entry->heures_reelles }}h
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    {{ substr($entry->heure_debut, 0, 5) }} - {{ substr($entry->heure_fin, 0, 5) }}
-                                                    <br>
-                                                    <small class="text-muted">
-                                                        Durée : {{
+                                                        {{
                                                             \Carbon\Carbon::parse($entry->heure_fin)
                                                                 ->diff(\Carbon\Carbon::parse($entry->heure_debut))
                                                                 ->format('%hh %Imin')
                                                         }}
-                                                    </small>
+                                                    </span>
                                                 </td>
                                                 <td>
                                                     @if($entry->travaux)
                                                         {{ $entry->travaux }}
+                                                    @else
+                                                        <span class="text-muted">Aucune description</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if($entry->rendu)
+                                                        {{ $entry->rendu }}
                                                     @else
                                                         <span class="text-muted">Aucune description</span>
                                                     @endif
@@ -236,7 +271,16 @@
                                         <tfoot>
                                             <tr class="table-active">
                                                 <td colspan="3" class="text-right"><strong>Total heures :</strong></td>
-                                                <td><strong>{{ $dailyEntry->heures_reelles }}h</strong></td>
+                                                <td>
+                                                    <strong>
+                                                        @php
+                                                            $heures = floor($dailyEntry->heures_reelles);
+                                                            $minutes = round(($dailyEntry->heures_reelles - $heures) * 60);
+                                                        @endphp
+
+                                                        {{ $heures }}h {{ $minutes }}min
+                                                    </strong>
+                                                </td>
                                                 <td colspan="2"></td>
                                             </tr>
                                         </tfoot>
@@ -279,7 +323,14 @@
                                                         <br>
                                                         <small class="text-muted">{{ $dossier->client->nom ?? 'Sans client' }}</small>
                                                     </div>
-                                                    <span class="badge badge-primary badge-pill">{{ $hours }}h</span>
+                                                    <span class="badge badge-primary badge-pill">
+                                                        @php
+                                                            $heures = floor($hours);
+                                                            $minutes = round(($hours - $heures) * 60);
+                                                        @endphp
+
+                                                        {{ $heures }}h {{ $minutes }}min
+                                                    </span>
                                                 </li>
                                             @endforeach
                                         </ul>

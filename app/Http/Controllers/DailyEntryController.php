@@ -142,7 +142,7 @@ class DailyEntryController extends Controller
             'time_entries.*.heure_fin' => 'required|date_format:H:i|after:time_entries.*.heure_debut',
             'time_entries.*.heures_reelles' => 'required|numeric|min:0.25',
             'time_entries.*.travaux' => 'nullable|string|max:500',
-            'rendu' => 'nullable|string|max:500',
+            'time_entries.*.rendu' => 'nullable|string|max:500',
 
         ]);
 

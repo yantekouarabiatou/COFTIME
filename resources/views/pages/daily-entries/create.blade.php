@@ -75,95 +75,99 @@
 
                         <!-- Conteneur avec scroll horizontal sur petits écrans -->
                         <div class="table-responsive">
+                            <!-- Conteneur des activités -->
                             <div id="time-entries-container">
                                 <!-- Première ligne visible par défaut -->
-                                <div class="time-entry-row mb-3">
-                                    <div class="row align-items-end">
-                                        <div class="col-md-2 col-12">
-                                            <div class="form-group mb-0">
-                                                <label class="font-weight-bold">Dossier <span
-                                                        class="text-danger">*</span></label>
-                                                <select name="time_entries[0][dossier_id]"
-                                                    class="form-control select2 dossier-select" required>
-                                                    <option value="">Choisir un dossier...</option>
-                                                    @foreach($dossiers as $dossier)
-                                                        <option value="{{ $dossier->id }}"
-                                                            data-client="{{ $dossier->client->nom ?? 'Sans client' }}"
-                                                            data-reference="{{ $dossier->reference ?? '' }}">
-                                                            {{ $dossier->nom }} - {{ $dossier->client->nom ?? 'Sans client' }}
-                                                        </option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
+                                <div class="time-entry-row mb-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <!-- Première ligne: Informations principales -->
+                                            <div class="row align-items-end mb-3">
+                                                <div class="col-lg-3 col-md-4 col-12 mb-2">
+                                                    <div class="form-group mb-0">
+                                                        <label class="font-weight-bold">Dossier <span class="text-danger">*</span></label>
+                                                        <select name="time_entries[0][dossier_id]"
+                                                            class="form-control select2 dossier-select" required>
+                                                            <option value="">Choisir un dossier...</option>
+                                                            @foreach($dossiers as $dossier)
+                                                                <option value="{{ $dossier->id }}"
+                                                                    data-client="{{ $dossier->client->nom ?? 'Sans client' }}"
+                                                                    data-reference="{{ $dossier->reference ?? '' }}">
+                                                                    {{ $dossier->nom }} - {{ $dossier->client->nom ?? 'Sans client' }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
 
-                                        <div class="col-md-2 col-6">
-                                            <div class="form-group mb-0">
-                                                <label class="font-weight-bold">Heure début <span
-                                                        class="text-danger">*</span></label>
-                                                <input type="time" name="time_entries[0][heure_debut]"
-                                                    class="form-control heure-debut text-center" value="09:00" required>
-                                            </div>
-                                        </div>
+                                                <div class="col-lg-2 col-md-3 col-6 mb-2">
+                                                    <div class="form-group mb-0">
+                                                        <label class="font-weight-bold">Heure début <span class="text-danger">*</span></label>
+                                                        <input type="time" name="time_entries[0][heure_debut]"
+                                                            class="form-control heure-debut text-center" value="09:00" required>
+                                                    </div>
+                                                </div>
 
-                                        <div class="col-md-2 col-6">
-                                            <div class="form-group mb-0">
-                                                <label class="font-weight-bold">Heure fin <span
-                                                        class="text-danger">*</span></label>
-                                                <input type="time" name="time_entries[0][heure_fin]"
-                                                    class="form-control heure-fin text-center" value="12:00" required>
-                                            </div>
-                                        </div>
+                                                <div class="col-lg-2 col-md-3 col-6 mb-2">
+                                                    <div class="form-group mb-0">
+                                                        <label class="font-weight-bold">Heure fin <span class="text-danger">*</span></label>
+                                                        <input type="time" name="time_entries[0][heure_fin]"
+                                                            class="form-control heure-fin text-center" value="12:00" required>
+                                                    </div>
+                                                </div>
 
-                                        <div class="col-md-1 col-6">
-                                            <div class="form-group mb-0">
-                                                <label class="font-weight-bold">Heures</label>
-                                                <input type="number" step="0.25" min="0.25"
-                                                    name="time_entries[0][heures_reelles]"
-                                                    class="form-control heures-input text-center" value="3" required>
-                                            </div>
-                                        </div>
+                                                <div class="col-lg-2 col-md-2 col-6 mb-2">
+                                                    <div class="form-group mb-0">
+                                                        <label class="font-weight-bold">Heures <span class="text-danger">*</span></label>
+                                                        <input type="number" step="0.25" min="0.25"
+                                                            name="time_entries[0][heures_reelles]"
+                                                            class="form-control heures-input text-center" value="3" required>
+                                                    </div>
+                                                </div>
 
-                                        <div class="col-md-2 col-12">
-                                            <div class="form-group mb-0">
-                                                <label class="font-weight-bold">Travaux réalisés</label>
-                                                <textarea name="time_entries[0][travaux]"
-                                                    class="form-control travaux-input"
-                                                    rows="2"
-                                                    placeholder="Ex: Analyse des documents, rédaction rapport..."></textarea>
+                                                <div class="col-lg-3 col-md-12 col-6 mb-2 text-lg-right text-md-left">
+                                                    <div class="form-group mb-0">
+                                                        <label class="d-none d-lg-block text-white">-</label>
+                                                        <button type="button" class="btn btn-danger btn-sm remove-row"
+                                                            title="Supprimer cette activité">
+                                                            <i class="fas fa-trash"></i> Supprimer
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div class="col-md-2 col-12">
-                                            <div class="form-group mb-0">
-                                                <label class="font-weight-bold">Rendu</label>
-                                                <textarea name="time_entries[0][rendu]"
-                                                    class="form-control"
-                                                    rows="2"
-                                                    placeholder="Ex: Rapport v1, 5 pages..."></textarea>
-                                            </div>
-                                        </div>
+                                            <!-- Deuxième ligne: Descriptions détaillées -->
+                                            <div class="row">
+                                                <div class="col-md-6 col-12 mb-2">
+                                                    <div class="form-group mb-0">
+                                                        <label class="font-weight-bold">Travaux réalisés</label>
+                                                        <textarea name="time_entries[0][travaux]"
+                                                            class="form-control travaux-input"
+                                                            rows="3"
+                                                            placeholder="Ex: Analyse des documents, rédaction rapport..."></textarea>
+                                                    </div>
+                                                </div>
 
-                                        <div class="col-md-1 col-12 text-center">
-                                            <div class="form-group mb-0">
-                                                <label class="text-white">-</label><br>
-                                                <button type="button" class="btn btn-danger btn-sm remove-row"
-                                                    title="Supprimer">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <div class="col-md-6 col-12 mb-2">
+                                                    <div class="form-group mb-0">
+                                                        <label class="font-weight-bold">Rendu</label>
+                                                        <textarea name="time_entries[0][rendu]"
+                                                            class="form-control"
+                                                            rows="3"
+                                                            placeholder="Ex: Rapport v1, 5 pages..."></textarea>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="mb-4 text-center">
-                            <button type="button" id="add-row" class="btn btn-outline-primary">
-                                <i class="fas fa-plus"></i> Ajouter une activité
-                            </button>
-                        </div>
-
+                            <div class="mb-4 text-center">
+                                <button type="button" id="add-row" class="btn btn-outline-primary btn-lg">
+                                    <i class="fas fa-plus-circle"></i> Ajouter une activité
+                                </button>
+                            </div>
 
                         <!-- Récapitulatif visuel -->
                         <div class="card mt-4">
@@ -371,6 +375,94 @@
             margin-right: 5px;
         }
     </style>
+
+    <style>
+/* Styles pour améliorer l'apparence des cartes d'activités */
+.time-entry-row .card {
+    border-left: 4px solid #6777ef;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.time-entry-row .card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.time-entry-row textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-size: 0.9rem;
+}
+
+.time-entry-row textarea:focus {
+    border-color: #6777ef;
+    box-shadow: 0 0 0 0.2rem rgba(103, 119, 239, 0.25);
+}
+
+.time-entry-row input[type="time"],
+.time-entry-row input[type="number"] {
+    font-weight: 500;
+}
+
+/* Badge pour le numéro d'activité */
+.activity-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+/* Amélioration du bouton de suppression */
+.remove-row {
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+.remove-row:hover {
+    transform: scale(1.05);
+}
+
+/* Responsive: ajustements pour petits écrans */
+@media (max-width: 768px) {
+    .time-entry-row .card {
+        margin-bottom: 1rem;
+    }
+    
+    .remove-row {
+        width: 100%;
+        margin-top: 10px;
+    }
+}
+
+/* Style pour les labels */
+.time-entry-row label {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+/* Animation pour l'ajout de nouvelles lignes */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.time-entry-row {
+    animation: slideIn 0.3s ease-out;
+}
+</style>
+
 @endpush
 
 @push('scripts')
@@ -444,69 +536,77 @@
 
             $('#add-row').on('click', function () {
                 let newRow = `
-        <div class="time-entry-row mb-3">
-            <div class="row align-items-end">
-                <div class="col-md-2 col-12">
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Dossier <span class="text-danger">*</span></label>
-                        <select name="time_entries[${rowIndex}][dossier_id]" class="form-control select2 dossier-select" required>
-                            ${dossierOptionsHTML}
-                        </select>
-                    </div>
-                </div>
+                <div class="time-entry-row mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <!-- Première ligne: Informations principales -->
+                            <div class="row align-items-end mb-3">
+                                <div class="col-lg-3 col-md-4 col-12 mb-2">
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">Dossier <span class="text-danger">*</span></label>
+                                        <select name="time_entries[${rowIndex}][dossier_id]" class="form-control select2 dossier-select" required>
+                                            ${dossierOptionsHTML}
+                                        </select>
+                                    </div>
+                                </div>
 
-                <div class="col-md-2 col-6">
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Heure début <span class="text-danger">*</span></label>
-                        <input type="time" name="time_entries[${rowIndex}][heure_debut]" class="form-control heure-debut text-center" required>
-                    </div>
-                </div>
+                                <div class="col-lg-2 col-md-3 col-6 mb-2">
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">Heure début <span class="text-danger">*</span></label>
+                                        <input type="time" name="time_entries[${rowIndex}][heure_debut]" class="form-control heure-debut text-center" required>
+                                    </div>
+                                </div>
 
-                <div class="col-md-2 col-6">
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Heure fin <span class="text-danger">*</span></label>
-                        <input type="time" name="time_entries[${rowIndex}][heure_fin]" class="form-control heure-fin text-center" required>
-                    </div>
-                </div>
+                                <div class="col-lg-2 col-md-3 col-6 mb-2">
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">Heure fin <span class="text-danger">*</span></label>
+                                        <input type="time" name="time_entries[${rowIndex}][heure_fin]" class="form-control heure-fin text-center" required>
+                                    </div>
+                                </div>
 
-                <div class="col-md-1 col-6">
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Heures</label>
-                        <input type="number" step="0.25" min="0.25" name="time_entries[${rowIndex}][heures_reelles]"
-                               class="form-control heures-input text-center" required>
-                    </div>
-                </div>
+                                <div class="col-lg-2 col-md-2 col-6 mb-2">
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">Heures <span class="text-danger">*</span></label>
+                                        <input type="number" step="0.25" min="0.25" name="time_entries[${rowIndex}][heures_reelles]"
+                                            class="form-control heures-input text-center" required>
+                                    </div>
+                                </div>
 
-                <div class="col-md-2 col-12">
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Travaux réalisés</label>
-                        <textarea name="time_entries[${rowIndex}][travaux]"
-                            class="form-control travaux-input"
-                            rows="2"
-                            placeholder="Ex: Analyse des documents, rédaction rapport..."></textarea>
-                    </div>
-                </div>
+                                <div class="col-lg-3 col-md-12 col-6 mb-2 text-lg-right text-md-left">
+                                    <div class="form-group mb-0">
+                                        <label class="d-none d-lg-block text-white">-</label>
+                                        <button type="button" class="btn btn-danger btn-sm remove-row" title="Supprimer cette activité">
+                                            <i class="fas fa-trash"></i> Supprimer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
 
-                <div class="col-md-2 col-12">
-                    <div class="form-group mb-0">
-                        <label class="font-weight-bold">Rendu</label>
-                        <textarea name="time_entries[${rowIndex}][rendu]"
-                            class="form-control"
-                            rows="2"
-                            placeholder="Ex: Rapport v1, 5 pages..."></textarea>
-                    </div>
-                </div>
+                            <!-- Deuxième ligne: Descriptions détaillées -->
+                            <div class="row">
+                                <div class="col-md-6 col-12 mb-2">
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">Travaux réalisés</label>
+                                        <textarea name="time_entries[${rowIndex}][travaux]"
+                                            class="form-control travaux-input"
+                                            rows="3"
+                                            placeholder="Ex: Analyse des documents, rédaction rapport..."></textarea>
+                                    </div>
+                                </div>
 
-                <div class="col-md-1 col-12 text-center">
-                    <div class="form-group mb-0">
-                        <label class="text-white">-</label><br>
-                        <button type="button" class="btn btn-danger btn-sm remove-row" title="Supprimer">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                                <div class="col-md-6 col-12 mb-2">
+                                    <div class="form-group mb-0">
+                                        <label class="font-weight-bold">Rendu</label>
+                                        <textarea name="time_entries[${rowIndex}][rendu]"
+                                            class="form-control"
+                                            rows="3"
+                                            placeholder="Ex: Rapport v1, 5 pages..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>`;
+                </div>`;
 
                 $('#time-entries-container').append(newRow);
 
@@ -547,8 +647,7 @@
                     let endTime = new Date('1970-01-01T' + end + ':00');
                     if (endTime < startTime) endTime.setDate(endTime.getDate() + 1);
                     let diff = (endTime - startTime) / (1000 * 60 * 60);
-                    diff = Math.round(diff * 4) / 4;
-                    row.find('.heures-input').val(diff.toFixed(2));
+                    row.find('.heures-input').val(diff.toFixed(2)).attr('title', decimalToHoursMinutes(diff));
                     updateTotal();
                 }
             }
@@ -558,12 +657,14 @@
                 $('.heures-input').each(function () { total += parseFloat($(this).val()) || 0; });
                 let theoriques = parseFloat($('input[name="heures_theoriques"]').val()) || 8;
 
-                $('#total-heures span').text(total.toFixed(2));
+                $('#total-heures span').text(decimalToHoursMinutes(total));
                 let percentage = (total / theoriques) * 100;
                 let barPercentage = Math.min(percentage, 100);
 
                 $('#progress-bar').css('width', barPercentage + '%');
-                $('#progress-bar .progress-text').text(total.toFixed(2) + 'h / ' + theoriques + 'h');
+                $('#progress-bar .progress-text').text(
+                    `${decimalToHoursMinutes(total)} / ${decimalToHoursMinutes(theoriques)}`
+                );
 
                 $('#progress-over').css('width', percentage > 100 ? (percentage - 100) + '%' : '0%');
                 $('#progress-under').css('width', percentage <= 100 ? (100 - percentage) + '%' : '0%');
@@ -586,6 +687,15 @@
             });
 
             updateTotal();
+
+            function decimalToHoursMinutes(decimal) {
+                if (!decimal || isNaN(decimal)) return '0h 00min';
+
+                const hours = Math.floor(decimal);
+                const minutes = Math.round((decimal - hours) * 60);
+
+                return `${hours}h ${minutes.toString().padStart(2, '0')}min`;
+            }
         });
     </script>
 @endpush

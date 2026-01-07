@@ -13,7 +13,7 @@ return new class extends Migration
     {
 
         Schema::table('time_entries', function (Blueprint $table) {
-            $table->string('rendu')->nullable()->after('travaux');
+            $table->text('rendu')->nullable()->after('travaux');
         });
     }
 
