@@ -19,6 +19,7 @@ use App\Http\Controllers\DailyEntryController;
 use App\Http\Controllers\DossierController;
 use App\Http\Controllers\CongeController;
 use App\Http\Controllers\InteretController;
+use App\Http\Controllers\MissionAnalyseController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RapportController;
 use App\Http\Controllers\RoleController;
@@ -30,7 +31,8 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Statistics\PlaintesStatsController;
 use App\Http\Controllers\Statistics\InteretsStatsController;
 use App\Http\Controllers\UserProfileController;
-
+use App\Models\User;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -244,5 +246,30 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{setting}', [CompanySettingController::class, 'update'])->name('settings.update');
     })->middleware('auth'); // Appliquez les middlewares nécessaires
 
+    // Routes pour l'analyse des missions
+    // routes/web.php
+
+    Route::prefix('missions')->group(function () {
+        Route::get('/analyse', [MissionAnalyseController::class, 'index'])->name('missions.analyse');
+        Route::post('/analyse/filtrer', [MissionAnalyseController::class, 'filtrerPersonnels'])->name('missions.filtrer');
+        Route::get('/utilisateur/{user}', [MissionAnalyseController::class, 'vueUtilisateur'])->name('missions.utilisateur');
+        Route::get('/utilisateur/{user}/dossier/{dossier}', [MissionAnalyseController::class, 'vueUtilisateur'])->name('missions.utilisateur.dossier');
+        // Route pour voir un utilisateur spécifique
+        Route::get('/utilisateur/{user}', [MissionAnalyseController::class, 'vueUtilisateur'])->name('missions.utilisateur');
+
+        // Route pour voir un utilisateur sur un dossier spécifique
+        Route::get('/utilisateur/{user}/dossier/{dossier}', [MissionAnalyseController::class, 'vueUtilisateur'])->name('missions.utilisateur.dossier');
+    });
+
+    // Route API à créer dans routes/api.php
+    Route::get('/personnel-details', function (Request $request) {
+        $personnel = User::with(['poste', 'timeEntries' => function ($q) use ($request) {
+            $q->where('dossier_id', $request->dossier_id);
+        }])->find($request->personnel_id);
+
+        return response()->json([
+            'html' => view('partials.personnel-details', compact('personnel'))->render()
+        ]);
+    });
 });
 require __DIR__ . '/auth.php';

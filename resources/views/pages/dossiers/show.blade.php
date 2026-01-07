@@ -240,9 +240,7 @@
                                             <a href="{{ route('dossiers.edit', $dossier) }}" class="list-group-item list-group-item-action">
                                                 <i class="fas fa-edit mr-2"></i> Modifier le dossier
                                             </a>
-                                            <a href="#" class="list-group-item list-group-item-action" onclick="window.print()">
-                                                <i class="fas fa-print mr-2"></i> Imprimer cette page
-                                            </a>
+                                            
                                             <a href="{{ route('clients.show', $dossier->client) }}" class="list-group-item list-group-item-action">
                                                 <i class="fas fa-external-link-alt mr-2"></i> Voir le client
                                             </a>
@@ -254,6 +252,234 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau détaillé des personnels -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-table"></i> Personnels ayant travaillé sur ce dossier</h4>
+                        <div class="card-header-action">
+                            <div class="input-group" style="width: 250px;">
+                                <input type="text" class="form-control" id="searchPersonnel" placeholder="Rechercher personnel...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" id="btnSearch"><i class="fas fa-search"></i></button>
+                                </div>
+                            </div>
+                            <a href="{{ route('missions.analyse') }}" class="btn btn-info ml-2">
+                                <i class="fas fa-chart-bar"></i> Analyse complète
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="personnelTable">
+                                <thead>
+                                    <tr>
+                                        <th>Personnel</th>
+                                        <th>Poste</th>
+                                        <th class="text-center">Heures Aujourd'hui</th>
+                                        <th class="text-center">Total Heures</th>
+                                        <th class="text-center">Nb Interventions</th>
+                                        <th class="text-center">Charge</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php
+                                        // Récupérer tous les personnels ayant travaillé sur ce dossier
+                                        $personnels = $dossier->personnelsAvecTemps();
+                                    @endphp
+
+                                    @forelse($personnels as $personnelData)
+                                        @php
+                                            $personnel = $personnelData->user;
+                                            $chargeJour = App\Models\TimeEntry::where('user_id', $personnel->id)
+                                                ->where('dossier_id', $dossier->id)
+                                                ->whereHas('dailyEntry', function($query) {
+                                                    $query->whereDate('jour', today());
+                                                })
+                                                ->sum('heures_reelles');
+
+                                            $chargeTotal = $personnelData->total_heures;
+                                            $nbInterventions = $personnelData->nb_interventions;
+
+                                            $statut = 'success';
+                                            $label = 'Normale';
+                                            if ($chargeJour > 8) {
+                                                $statut = 'danger';
+                                                $label = 'Surcharge';
+                                            } elseif ($chargeJour > 6) {
+                                                $statut = 'warning';
+                                                $label = 'Moyenne';
+                                            }
+
+                                            $progress = min(($chargeJour / 8) * 100, 100);
+                                        @endphp
+                                        <tr class="personnel-row" data-charge="{{ $chargeJour }}">
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="avatar avatar-sm mr-2">
+                                                        @if($personnel->photo && Storage::exists($personnel->photo))
+                                                            <img src="{{ asset('storage/'.$personnel->photo) }}" alt="Avatar" class="rounded-circle">
+                                                        @else
+                                                            <div class="avatar-initial rounded-circle bg-{{ $statut }}">
+                                                                {{ strtoupper(substr($personnel->prenom, 0, 1) . substr($personnel->nom, 0, 1)) }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-weight-bold">{{ $personnel->nom }}</div>
+                                                        <small class="text-muted">{{ $personnel->email }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-info">
+                                                    {{ $personnel->poste->intitule ?? 'Non défini' }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="font-weight-bold text-{{ $statut }}">
+                                                    {{ number_format($chargeJour, 2) }}h
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="font-weight-bold">
+                                                    {{ number_format($chargeTotal, 2) }}h
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge badge-primary">
+                                                    {{ $nbInterventions }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="progress mb-1" style="height: 20px;">
+                                                    <div class="progress-bar bg-{{ $statut }}"
+                                                         role="progressbar"
+                                                         style="width: {{ $progress }}%"
+                                                         aria-valuenow="{{ $progress }}"
+                                                         aria-valuemin="0"
+                                                         aria-valuemax="100">
+                                                        {{ round($progress) }}%
+                                                    </div>
+                                                </div>
+                                                <small class="text-{{ $statut }}">{{ $label }}</small>
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="{{ route('missions.utilisateur.dossier', ['user' => $personnel->id, 'dossier' => $dossier->id]) }}"
+                                                   class="btn btn-sm btn-primary" title="Voir détails">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">
+                                                <div class="empty-state" data-height="200">
+                                                    <div class="empty-state-icon">
+                                                        <i class="fas fa-user-friends"></i>
+                                                    </div>
+                                                    <h2>Aucun personnel n'a encore travaillé sur ce dossier</h2>
+                                                    <p class="lead">
+                                                        Aucune entrée de temps n'a été enregistrée pour ce dossier.
+                                                    </p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                                @if($personnels->count() > 0)
+                                <tfoot>
+                                    <tr class="bg-light">
+                                        <td colspan="2"><strong>Totaux</strong></td>
+                                        <td class="text-center">
+                                            <strong>{{ number_format($personnels->sum(fn($p) => App\Models\TimeEntry::where('user_id', $p->user->id)
+                                                ->where('dossier_id', $dossier->id)
+                                                ->whereHas('dailyEntry', function($query) {
+                                                    $query->whereDate('jour', today());
+                                                })
+                                                ->sum('heures_reelles')), 2) }}h</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ number_format($personnels->sum('total_heures'), 2) }}h</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ $personnels->sum('nb_interventions') }}</strong>
+                                        </td>
+                                        <td colspan="2">
+                                            <small class="text-muted">{{ $personnels->count() }} personnel(s) impliqué(s)</small>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                                @endif
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Temps passé sur le dossier -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-clock"></i> Historique des temps passés</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Personnel</th>
+                                        <th>Heure début</th>
+                                        <th>Heure fin</th>
+                                        <th>Durée</th>
+                                        <th>Travaux effectués</th>
+                                        <th>Rendus</th>
+
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($dossier->timeEntries()->with('user')->latest()->take(20)->get() as $entry)
+                                    <tr>
+                                        <td>{{ $entry->dailyEntry->jour->format('d/m/Y') }}</td>
+                                        <td>{{ $entry->user->nom }}</td>
+                                        <td>{{ $entry->heure_debut->format('H:i') }}</td>
+                                        <td>{{ $entry->heure_fin->format('H:i') }}</td>
+                                        <td>{{ number_format($entry->heures_reelles, 2) }}h</td>
+                                        <td>
+                                            <span title="{{ $entry->travaux }}">{{ Str::limit($entry->travaux, 50) }}</span>
+                                        </td>
+                                        <td>
+                                            <span title="{{ $entry->rendu }}">{{ Str::limit($entry->rendu, 50) }}</span>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center">
+                                            Aucune entrée de temps enregistrée pour ce dossier
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if($dossier->timeEntries()->count() > 20)
+                        <div class="text-center mt-3">
+                            <a href="#" class="btn btn-outline-primary">
+                                Voir tout l'historique ({{ $dossier->timeEntries()->count() }} entrées)
+                            </a>
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -286,6 +512,31 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Détails Personnel -->
+<div class="modal fade" tabindex="-1" role="dialog" id="detailModal">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Détails du personnel</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Le contenu sera chargé via AJAX -->
+                <div id="modalContent" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('styles')
@@ -307,16 +558,111 @@
     .list-group-item:first-child {
         border-top: none;
     }
+    .avatar-initial {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+    }
+    .empty-state {
+        height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .empty-state-icon {
+        font-size: 48px;
+        color: #ddd;
+        margin-bottom: 20px;
+    }
+    .progress {
+        border-radius: 10px;
+    }
+    .progress-bar {
+        border-radius: 10px;
+    }
 </style>
 @endpush
 
 @push('scripts')
 <script>
     $(document).ready(function() {
-        // Gestion de l'impression
-        function printPage() {
-            window.print();
-        }
+        // Recherche dans le tableau des personnels
+        $('#btnSearch').on('click', function() {
+            const searchTerm = $('#searchPersonnel').val().toLowerCase();
+
+            $('.personnel-row').each(function() {
+                const rowText = $(this).text().toLowerCase();
+                if (rowText.indexOf(searchTerm) > -1) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+
+        $('#searchPersonnel').on('keyup', function(e) {
+            if (e.key === 'Enter') {
+                $('#btnSearch').click();
+            }
+        });
+
+        // Modal de détails personnel
+        $('button[data-target="#detailModal"]').on('click', function() {
+            const personnelId = $(this).data('personnel');
+            const dossierId = {{ $dossier->id }};
+
+            $('#modalContent').html(`
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Chargement...</span>
+                </div>
+            `);
+
+            $.ajax({
+                url: '/api/personnel-details',
+                method: 'GET',
+                data: {
+                    personnel_id: personnelId,
+                    dossier_id: dossierId
+                },
+                success: function(response) {
+                    $('#modalContent').html(response.html);
+                },
+                error: function() {
+                    $('#modalContent').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Impossible de charger les détails du personnel.
+                        </div>
+                    `);
+                }
+            });
+        });
+
+        // Trier par charge
+        $('#sortCharge').on('change', function() {
+            const rows = $('.personnel-row').get();
+
+            rows.sort(function(a, b) {
+                const chargeA = parseFloat($(a).data('charge'));
+                const chargeB = parseFloat($(b).data('charge'));
+
+                if ($(this).val() === 'desc') {
+                    return chargeB - chargeA;
+                } else {
+                    return chargeA - chargeB;
+                }
+            }.bind(this));
+
+            $.each(rows, function(index, row) {
+                $('#personnelTable tbody').append(row);
+            });
+        });
     });
 </script>
 @endpush

@@ -557,7 +557,7 @@ class DailyEntryController extends Controller
         $filename = "feuille-temps-{$dateFile}.pdf";
 
         $pdf = Pdf::loadView('pages.daily-entries.export.pdf1', [
-            'entry' => $dailyEntry,  // renommé en $entry dans la vue
+            'entry' => $dailyEntry,  
             'logoBase64' => $logoBase64,
             'companySetting' => $companySetting,
         ])->setPaper('a4', 'portrait');

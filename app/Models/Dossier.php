@@ -232,10 +232,53 @@ class Dossier extends Model
      */
     public function scopeSearch($query, $search)
     {
-        return $query->where(function($q) use ($search) {
+        return $query->where(function ($q) use ($search) {
             $q->where('nom', 'LIKE', "%{$search}%")
-              ->orWhere('reference', 'LIKE', "%{$search}%")
-              ->orWhere('description', 'LIKE', "%{$search}%");
+                ->orWhere('reference', 'LIKE', "%{$search}%")
+                ->orWhere('description', 'LIKE', "%{$search}%");
         });
+    }
+    /**
+     * Récupérer tous les personnels ayant travaillé sur ce dossier
+     */
+    public function personnels()
+    {
+        return $this->belongsToMany(User::class, 'time_entries', 'dossier_id', 'user_id')
+            ->withPivot(['heures_reelles', 'created_at'])
+            ->withTimestamps()
+            ->distinct();
+    }
+
+    /**
+     * Calculer le temps total passé sur le dossier
+     */
+    public function getTempsTotalAttribute()
+    {
+        return $this->timeEntries()->sum('heures_reelles');
+    }
+
+    /**
+     * Récupérer les personnels avec leur temps détaillé
+     */
+    public function personnelsAvecTemps($dateDebut = null, $dateFin = null)
+    {
+        $query = $this->timeEntries()
+            ->selectRaw('user_id, SUM(heures_reelles) as total_heures, COUNT(*) as nb_interventions')
+            ->with('user')
+            ->groupBy('user_id');
+
+        if ($dateDebut) {
+            $query->whereHas('dailyEntry', function ($q) use ($dateDebut) {
+                $q->where('jour', '>=', $dateDebut);
+            });
+        }
+
+        if ($dateFin) {
+            $query->whereHas('dailyEntry', function ($q) use ($dateFin) {
+                $q->where('jour', '<=', $dateFin);
+            });
+        }
+
+        return $query->get();
     }
 }
