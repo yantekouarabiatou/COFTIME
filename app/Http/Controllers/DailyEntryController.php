@@ -142,6 +142,8 @@ class DailyEntryController extends Controller
             'time_entries.*.heure_fin' => 'required|date_format:H:i|after:time_entries.*.heure_debut',
             'time_entries.*.heures_reelles' => 'required|numeric|min:0.25',
             'time_entries.*.travaux' => 'nullable|string|max:500',
+            'rendu' => 'nullable|string|max:500',
+
         ]);
 
         // VÉRIFICATION : Récupérer ou créer la DailyEntry
@@ -188,6 +190,7 @@ class DailyEntryController extends Controller
                 'heure_fin' => $entry['heure_fin'],
                 'heures_reelles' => $entry['heures_reelles'],
                 'travaux' => $entry['travaux'] ?? null,
+                'rendu' => $entry['rendu'] ?? null,
             ]);
         }
 
@@ -258,6 +261,7 @@ class DailyEntryController extends Controller
                 'heure_fin' => 'required|date_format:H:i',
                 'heures_reelles' => 'required|numeric|min:0.25',
                 'travaux' => 'nullable|string|max:500',
+                'rendu' => 'nullable|string|max:500',
             ]);
 
             // Validation supplémentaire : heure_fin doit être après heure_debut
@@ -352,6 +356,7 @@ class DailyEntryController extends Controller
                 'heure_fin' => $entry['heure_fin'],
                 'heures_reelles' => $entry['heures_reelles'],
                 'travaux' => $entry['travaux'] ?? null,
+                'rendu' => $entry['rendu'] ?? null,
             ];
 
             if (isset($entry['id']) && !empty($entry['id'])) {
