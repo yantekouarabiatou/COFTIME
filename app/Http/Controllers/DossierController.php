@@ -7,6 +7,7 @@ use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\DataTables\DossiersDataTable;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class DossierController extends Controller
 {
@@ -51,20 +52,27 @@ class DossierController extends Controller
             'date_cloture_reelle' => 'nullable|date|after_or_equal:date_ouverture',
             'budget' => 'nullable|numeric|min:0',
             'frais_dossier' => 'nullable|numeric|min:0',
+
+            'heure_theorique_sans_weekend' => 'nullable|numeric|min:0',
+            'heure_theorique_avec_weekend' => 'nullable|numeric|min:0',
+
             'document' => 'nullable|file|max:5120|mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png',
             'notes' => 'nullable|string',
         ]);
 
         // Gestion du document
         if ($request->hasFile('document')) {
-            $validated['document'] = $request->file('document')->store('dossiers/documents', 'public');
+            $validated['document'] = $request->file('document')
+                ->store('dossiers/documents', 'public');
         }
 
         $dossier = Dossier::create($validated);
 
-        return redirect()->route('dossiers.show', $dossier)
-            ->with('success', 'Dossier créé avec succès.');
+        // 3. SweetAlert succès
+        Alert::success('Succès', 'Dossier créé avec succès.');
+        return redirect()->route('dossiers.show', $dossier);
     }
+
 
     public function show(Dossier $dossier)
     {

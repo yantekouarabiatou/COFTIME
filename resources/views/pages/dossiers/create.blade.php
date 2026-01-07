@@ -130,6 +130,42 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
+                                        <label>Heures théoriques (sans weekend)</label>
+                                        <div class="input-group">
+                                            <input type="number" step="0.5" min="0"
+                                                name="heure_theorique_sans_weekend"
+                                                id="heure_sans_weekend"
+                                                class="form-control"
+                                                placeholder="Calcul automatique">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">h</span>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Basé sur 8h/jour (lundi–vendredi)</small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Heures théoriques (avec weekend)</label>
+                                        <div class="input-group">
+                                            <input type="number" step="0.5" min="0"
+                                                name="heure_theorique_avec_weekend"
+                                                id="heure_avec_weekend"
+                                                class="form-control"
+                                                placeholder="Calcul automatique">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">h</span>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">Basé sur 8h/jour (weekend inclus)</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
                                         <label>Budget (€)</label>
                                         <div class="input-group">
                                             <input type="number" name="budget" step="0.01" min="0"
@@ -275,6 +311,47 @@ $(document).ready(function() {
             $('input[name="reference"]').val('DOS-' + nom + '-' + date);
         }
     });
+
+    function calculerHeuresTheoriques() {
+    const dateDebut = $('input[name="date_ouverture"]').val();
+    const dateFin = $('input[name="date_cloture_prevue"]').val();
+
+    if (!dateDebut || !dateFin) return;
+
+    const start = new Date(dateDebut);
+    const end = new Date(dateFin);
+
+    if (end < start) return;
+
+    let totalJours = 0;
+    let joursOuvrables = 0;
+
+    let current = new Date(start);
+
+    while (current <= end) {
+        totalJours++;
+
+        const day = current.getDay(); // 0 = Dimanche, 6 = Samedi
+        if (day !== 0 && day !== 6) {
+            joursOuvrables++;
+        }
+
+        current.setDate(current.getDate() + 1);
+    }
+
+    const heuresAvecWeekend = totalJours * 8;
+    const heuresSansWeekend = joursOuvrables * 8;
+
+    // Ne pas écraser si l'utilisateur a déjà modifié
+    if (!$('#heure_avec_weekend').is(':focus')) {
+        $('#heure_avec_weekend').val(heuresAvecWeekend);
+    }
+
+    if (!$('#heure_sans_weekend').is(':focus')) {
+        $('#heure_sans_weekend').val(heuresSansWeekend);
+    }
+}
+    $('input[name="date_ouverture"], input[name="date_cloture_prevue"]').on('change', calculerHeuresTheoriques);
 });
 </script>
 @endpush
