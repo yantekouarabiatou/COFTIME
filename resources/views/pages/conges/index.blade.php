@@ -116,7 +116,7 @@
                                 </div>
 
                                 {{-- Collaborateur (admin / manager uniquement) --}}
-                                @if($isAdmin && $users->isNotEmpty())
+                                @if(($isAdmin || $isManager) && $users->isNotEmpty())
                                 <div class="col-md-3">
                                     <label class="small font-weight-bold text-muted mb-1">
                                         <i class="fas fa-user mr-1"></i>Collaborateur
@@ -193,7 +193,7 @@
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        @if($isAdmin)
+                                        @if($isAdmin || $isManager)
                                         <th>Collaborateur</th>
                                         @endif
                                         <th>Type</th>
@@ -208,7 +208,7 @@
                                         <tr>
                                             <td>{{ $loop->iteration + ($demandes->currentPage() - 1) * $demandes->perPage() }}</td>
 
-                                            @if($isAdmin)
+                                            @if($isAdmin || $isManager)
                                             <td>
                                                 <div class="d-flex align-items-center">
                                                     <div class="mr-2">

@@ -206,18 +206,30 @@ class CongeController extends Controller
     //  INDEX
     // =========================================================================
 
+    private function applyRoleScope($query, $user)
+    {
+        if ($user->hasRole('admin')) {
+            return;
+        }
+
+        if ($user->hasRole('manager')) {
+            $query->where('superieur_hierarchique_id', $user->id);
+            return;
+        }
+
+        $query->where('user_id', $user->id);
+    }
+
     public function index(Request $request)
     {
         $user  = Auth::user();
-        $isAdmin = $user->hasRole('admin') || $user->hasRole('manager');
- 
+        $isAdmin   = $user->hasRole('admin');
+        $isManager = $user->hasRole('manager');
+
         $query = DemandeConge::with(['user', 'typeConge', 'validePar']);
- 
-        // Restriction de base : non-admin ne voit que ses propres demandes
-        if (!$isAdmin) {
-            $query->where('user_id', $user->id);
-        }
- 
+
+        // Logique de restriction
+        $this->applyRoleScope($query, $user); 
         // ── Filtres server-side ──────────────────────────────────────────────
  
         // Type de congé
@@ -231,7 +243,7 @@ class CongeController extends Controller
         }
  
         // Collaborateur (admin / manager uniquement)
-        if ($request->filled('user_id') && $isAdmin) {
+        if ($request->filled('user_id') && ($isAdmin || $isManager)) {
             $query->where('user_id', $request->user_id);
         }
  
@@ -269,7 +281,7 @@ class CongeController extends Controller
  
         // Liste des collaborateurs pour le select (admin / manager uniquement)
         $users = collect();
-        if ($isAdmin) {
+        if ($isAdmin || $isManager) {
             $users = User::where('is_active', 1)
                 ->orderBy('prenom')
                 ->get(['id', 'prenom', 'nom']);
@@ -283,7 +295,8 @@ class CongeController extends Controller
             'approuves',
             'refuses',
             'users',
-            'isAdmin'
+            'isAdmin',
+            'isManager'
         ));
     }
 
