@@ -7,8 +7,6 @@ use App\Models\User;
 use App\Models\TimeEntry;
 use App\Models\Dossier;
 use App\Models\DailyEntry;
-use App\Models\DemandeConge;
-use App\Models\TypeConge;
 use App\Models\Client;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -40,11 +38,6 @@ class DashboardController extends Controller
                     ->whereMonth('created_at', now()->month)
                     ->whereYear('created_at', now()->year)
                     ->sum('heures_reelles') ?? 0),
-                'mes_conges_en_cours' => DemandeConge::where('date_debut', '<=', now())
-                    ->where('date_fin', '>=', now())
-                    ->where('user_id', $user->id)
-                    ->where('statut', 'approuve')
-                    ->count(),
                 'heures_totales' => (float) (TimeEntry::where('user_id', $user->id)->sum('heures_reelles') ?? 0),
             ];
 
@@ -81,10 +74,6 @@ class DashboardController extends Controller
                     ->whereYear('created_at', now()->year)
                     ->distinct('dossier_id')
                     ->count('dossier_id'),
-                'conges' => DemandeConge::where('user_id', $user->id)
-                    ->whereMonth('date_debut', now()->month)
-                    ->whereYear('date_debut', now()->year)
-                    ->count(),
             ];
 
             // Calculer les pourcentages d'évolution
@@ -132,14 +121,6 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get();
 
-            // Mes congés par type (année en cours)
-            $mesCongesParType = DemandeConge::where('user_id', $user->id)
-                ->whereYear('date_debut', now()->year)
-                ->join('types_conges', 'demandes_conges.type_conge_id', '=', 'types_conges.id')
-                ->select('types_conges.libelle as type_conge', DB::raw('count(*) as count'))
-                ->groupBy('types_conges.id', 'types_conges.libelle')
-                ->get();
-
             // Mes daily entries récentes (7 derniers jours)
             $mesDailyEntries = DailyEntry::where('user_id', $user->id)
                 ->where('jour', '>=', now()->subDays(7))
@@ -153,23 +134,6 @@ class DashboardController extends Controller
                         'statut' => $entry->statut,
                         'is_weekend' => $entry->is_weekend,
                         'is_holiday' => $entry->is_holiday,
-                    ];
-                });
-
-            // Mes congés à venir (prochains 30 jours)
-            $mesCongesAVenir = DemandeConge::where('user_id', $user->id)
-                ->where('date_debut', '>', now())
-                ->where('date_debut', '<=', now()->addDays(30))
-                ->where('statut', 'approuve')
-                ->with('typeConge')
-                ->orderBy('date_debut')
-                ->get()
-                ->map(function($conge) {
-                    return [
-                        'type' => $conge->typeConge->libelle ?? 'N/A',
-                        'debut' => Carbon::parse($conge->date_debut)->format('d/m/Y'),
-                        'fin' => Carbon::parse($conge->date_fin)->format('d/m/Y'),
-                        'jours' => $conge->nombre_jours,
                     ];
                 });
 
@@ -194,12 +158,7 @@ class DashboardController extends Controller
                     'dossiers' => $mesHeuresParDossier->pluck('nom')->toArray(),
                     'heures' => $mesHeuresParDossier->pluck('total_heures')->map(fn($h) => round($h, 2))->toArray(),
                 ],
-                'mesCongesParType' => [
-                    'types' => $mesCongesParType->pluck('type_conge')->toArray(),
-                    'counts' => $mesCongesParType->pluck('count')->toArray(),
-                ],
-                'mesDailyEntries' => $mesDailyEntries,
-                'mesCongesAVenir' => $mesCongesAVenir,
+                'mesDailyEntries' => $mesDailyEntries
             ]);
 
         } catch (\Exception $e) {
@@ -266,16 +225,6 @@ class DashboardController extends Controller
 
             // Heures totales
             $heuresTotales = TimeEntry::where('user_id', $user->id)->sum('heures_reelles') ?? 0;
-
-            // Congés ce mois
-            $congesMois = DemandeConge::where('user_id', $user->id)
-                ->where(function($q) {
-                    $q->whereMonth('date_debut', now()->month)
-                      ->orWhereMonth('date_fin', now()->month);
-                })
-                ->whereYear('date_debut', now()->year)
-                ->count();
-
             // Mes dossiers actifs
             $dossiersActifs = $this->getUserDossiersActifsCount($user->id);
 
@@ -307,7 +256,6 @@ class DashboardController extends Controller
                 'stats' => [
                     'heures_mois' => round($heuresMois, 2),
                     'heures_totales' => round($heuresTotales, 2),
-                    'conges_mois' => $congesMois,
                     'dossiers_actifs' => $dossiersActifs,
                     'moyenne_heures_jour' => round($moyenneHeuresJour, 2),
                     'jours_travailles' => $joursTravailles,
@@ -388,78 +336,6 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             Log::error('Erreur dossierStats: ' . $e->getMessage());
             return response()->json(['error' => 'Erreur lors du chargement des statistiques du dossier'], 500);
-        }
-    }
-
-    /**
-     * Mes congés
-     */
-    public function mesConges()
-    {
-        try {
-            $user = auth()->user();
-
-            // Mes congés en cours
-            $congesEnCours = DemandeConge::where('user_id', $user->id)
-                ->where('date_debut', '<=', now())
-                ->where('date_fin', '>=', now())
-                ->where('statut', 'approuve')
-                ->with('typeConge')
-                ->get()
-                ->map(function($conge) {
-                    return [
-                        'id' => $conge->id,
-                        'type' => $conge->typeConge->libelle ?? 'N/A',
-                        'debut' => Carbon::parse($conge->date_debut)->format('d/m/Y'),
-                        'fin' => Carbon::parse($conge->date_fin)->format('d/m/Y'),
-                    ];
-                });
-
-            // Mes congés à venir (prochains 90 jours)
-            $congesAVenir = DemandeConge::where('user_id', $user->id)
-                ->where('date_debut', '>', now())
-                ->where('date_debut', '<=', now()->addDays(90))
-                ->where('statut', 'approuve')
-                ->with('typeConge')
-                ->orderBy('date_debut')
-                ->get()
-                ->map(function($conge) {
-                    return [
-                        'id' => $conge->id,
-                        'type' => $conge->typeConge->libelle ?? 'N/A',
-                        'debut' => Carbon::parse($conge->date_debut)->format('d/m/Y'),
-                        'fin' => Carbon::parse($conge->date_fin)->format('d/m/Y'),
-                        'jours' => $conge->nombre_jours,
-                    ];
-                });
-
-            // Mes congés par type (année en cours)
-            $congesParType = DemandeConge::where('user_id', $user->id)
-                ->whereYear('date_debut', now()->year)
-                ->join('types_conges', 'demandes_conges.type_conge_id', '=', 'types_conges.id')
-                ->select('types_conges.libelle as type_conge', DB::raw('count(*) as count'))
-                ->groupBy('types_conges.id', 'types_conges.libelle')
-                ->get();
-
-            // Total de jours de congés cette année
-            $totalJoursConges = DemandeConge::where('user_id', $user->id)
-                ->whereYear('date_debut', now()->year)
-                ->where('statut', 'approuve')
-                ->sum('nombre_jours');
-
-            return response()->json([
-                'congesEnCours' => $congesEnCours,
-                'congesAVenir' => $congesAVenir,
-                'congesParType' => [
-                    'types' => $congesParType->pluck('type_conge')->toArray(),
-                    'counts' => $congesParType->pluck('count')->toArray(),
-                ],
-                'totalJoursConges' => $totalJoursConges,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Erreur mesConges: ' . $e->getMessage());
-            return response()->json(['error' => 'Erreur lors du chargement des congés'], 500);
         }
     }
 

@@ -255,21 +255,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="card card-statistic-1">
-                                <div class="card-icon bg-warning">
-                                    <i class="fas fa-umbrella-beach"></i>
-                                </div>
-                                <div class="card-wrap">
-                                    <div class="card-header">
-                                        <h4>Congés pris</h4>
-                                    </div>
-                                    <div class="card-body">
-                                        {{ $statistiques['conges_pris'] ?? 0 }} jours
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

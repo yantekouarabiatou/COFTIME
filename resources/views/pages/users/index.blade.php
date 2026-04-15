@@ -101,15 +101,15 @@
                                 <td><strong class="text-dark">#{{ $user->id }}</strong></td>
                                 <td>{{ $user->nom ?? '-'}} {{ $user->prenom ?? '-'}}</td>
                                 <td>{{ $user->username ?? '-' }}</td>
-                                <td>
+                                <td data-statut="{{ $user->is_active ? 'Actif' : 'Inactif' }}">
                                     <label class="custom-switch mt-2">
-                                        <input type="checkbox" class="custom-switch-input toggle-status" data-id="{{ $user->id }}" {{ $user->is_active ? 'checked' : '' }}>
+                                        <input type="checkbox" class="custom-switch-input toggle-status" 
+                                            data-id="{{ $user->id }}" {{ $user->is_active ? 'checked' : '' }}>
                                         <span class="custom-switch-indicator"></span>
                                         <span class="custom-switch-description">
                                             {{ $user->is_active ? 'Actif' : 'Inactif' }}
                                         </span>
                                     </label>
-
                                 </td>
                                 <td>{{ $user->email ?? ""}}</td>
                                 <td>
@@ -260,63 +260,59 @@
 $(document).ready(function() {
     // Initialisation Select2
     $('.select2').select2({
-        placeholder: "Tous les états",
+        placeholder: "Tous",
         allowClear: true,
         width: '100%'
     });
 
-    var table = $('#users-table').DataTable({
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json',
-            search: "Rechercher :",
-            lengthMenu: "Afficher _MENU_ éléments",
-            info: "Affichage de _START_ à _END_ sur _TOTAL_ éléments",
-            paginate: {
-                first: "Premier",
-                last: "Dernier",
-                next: "Suivant",
-                previous: "Précédent"
+    // =========================================================
+    // FILTRAGE UNIFIÉ (sans DataTables search pour éviter les conflits)
+    // =========================================================
+    function filterUsers() {
+        let search  = $("#search-input").val().toLowerCase().trim();
+        let statut  = $("#statut-filter").val();   // "Actif" | "Inactif" | ""
+        let poste   = $("#poste-filter").val();
+
+        let total = 0, actifs = 0, inactifs = 0;
+
+        $("#users-table tbody tr").each(function () {
+            let row        = $(this);
+            let text       = row.text().toLowerCase();
+            let statutVal  = row.find("td[data-statut]").data("statut"); // "Actif" ou "Inactif"
+            let posteText  = row.find("td:nth-child(6)").text().trim();
+
+            let matchSearch = search === "" || text.includes(search);
+            let matchStatut = statut === "" || statutVal === statut;
+            let matchPoste  = poste  === "" || posteText === poste;
+
+            let visible = matchSearch && matchStatut && matchPoste;
+            row.toggle(visible);
+
+            if (visible) {
+                total++;
+                if (statutVal === 'Actif')   actifs++;
+                if (statutVal === 'Inactif') inactifs++;
             }
-        },
-        responsive: false, // Désactiver le responsive intégré car on gère le scroll
-        pageLength: 25,
-        order: [[1, 'desc']],
-        dom: '<"top"lf>rt<"bottom"ip><"clear">',
-        scrollX: true,
-        scrollY: false, // On gère le scroll manuellement avec le container
-        scrollCollapse: false,
-        columnDefs: [
-            { orderable: false, targets: [6] }, // Désactiver le tri sur la colonne actions
-            { width: "120px", targets: 0 }, // Référence
-            { width: "100px", targets: 1 }, // Date
-            { width: "150px", targets: 2 }, // Client
-            { width: "200px", targets: 3 }, // Motif
-            { width: "100px", targets: 4 }, // État
-            { width: "150px", targets: 5 }, // Créé par
-            { width: "180px", targets: 6 } // Actions
-        ],
-        fixedColumns: false
-    });
+        });
 
-    // Filtres
-    $('#search-input').on('keyup', function() {
-        table.search(this.value).draw();
-        updateCounts();
-    });
+        // Mise à jour des compteurs
+        $('#total-count').text(total);
+        $('#en-cours-count').text(actifs);
+        $('#resolues-count').text(inactifs);
+    }
 
-    $('#statut-filter').on('change', function() {
-        var val = $(this).val();
-        table.columns(4).search(val ? '^' + val + '$' : '', true, false).draw();
-        updateCounts();
-    });
+    // Événements
+    $("#search-input").on("keyup", filterUsers);
+    $("#statut-filter").on("change", filterUsers);
+    $("#poste-filter").on("change", filterUsers);
 
-
-    // Filtre par onglet
+    // Onglets Actif / Inactif / Tous
     $('#etat-tabs .nav-link').on('click', function(e) {
         e.preventDefault();
         $('#etat-tabs .nav-link').removeClass('active');
         $(this).addClass('active');
-        var etat = $(this).data('etat');
+
+        let etat = $(this).data('etat'); // "" | "Actif" | "Inactif"
         $('#statut-filter').val(etat).trigger('change');
     });
 
@@ -324,59 +320,14 @@ $(document).ready(function() {
     $('#reset-filters').on('click', function() {
         $('#search-input').val('');
         $('#statut-filter').val('').trigger('change');
-        table.search('').columns().search('').draw();
-        updateCounts();
-    });
-
-    // Mise à jour des compteurs
-    function updateCounts() {
-        var data = table.rows({ search: 'applied' }).data();
-        var total = data.length;
-        var actifs = data.toArray().filter(row => row[4].includes('Actif')).length;
-        var inactifs = data.toArray().filter(row => row[4].includes('Inactif')).length;
-
-        $('#total-count').text(total);
-        $('#actifs-count').text(actifs);
-        $('#inactifs-count').text(inactifs);
-    }
-
-    updateCounts();
-});
-</script>
-
-<script>
-$(document).ready(function () {
-
-    function filterUsers() {
-        let search = $("#search-input").val().toLowerCase();
-        let statut = $("#statut-filter").val();
-        let poste = $("#poste-filter").val();
-
-        $("#users-table tbody tr").filter(function () {
-
-            let row = $(this);
-            let text = row.text().toLowerCase();
-            let statutText = row.find("td:nth-child(4)").text().trim();
-            let posteText = row.find("td:nth-child(6)").text().trim();
-
-            let matchSearch = text.indexOf(search) > -1;
-            let matchStatut = (statut === "" || statutText === statut);
-            let matchPoste = (poste === "" || posteText === poste);
-
-            row.toggle(matchSearch && matchStatut && matchPoste);
-        });
-    }
-
-    $("#search-input").on("keyup", filterUsers);
-    $("#statut-filter").on("change", filterUsers);
-    $("#poste-filter").on("change", filterUsers);
-
-    $("#reset-filters").on("click", function () {
-        $("#search-input").val("");
-        $("#statut-filter").val("").trigger("change");
-        $("#poste-filter").val("").trigger("change");
+        $('#poste-filter').val('').trigger('change');
+        $('#etat-tabs .nav-link').removeClass('active');
+        $('#etat-tabs .nav-link:first').addClass('active');
         filterUsers();
     });
+
+    // Lancer au chargement pour initialiser les compteurs
+    filterUsers();
 });
 </script>
 

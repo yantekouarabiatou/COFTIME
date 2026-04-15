@@ -6,7 +6,6 @@ use App\Models\User;
 use App\Models\Poste;
 use App\Models\DailyEntry;
 use App\Models\TimeEntry;
-use App\Models\Conge;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -35,9 +34,6 @@ class UserProfileController extends Controller
             },
             'timeEntries' => function($query) {
                 $query->latest()->limit(10);
-            },
-            'conges' => function($query) {
-                $query->latest()->limit(5);
             }
         ]);
 
@@ -67,14 +63,12 @@ class UserProfileController extends Controller
             'poste',
             'creator',
             'roles', // Charger les rôles Spatie
+            'manager.roles', // Charger le manager et ses rôles
             'dailyEntries' => function($query) {
                 $query->latest('jour')->limit(10);
             },
             'timeEntries' => function($query) {
                 $query->with('dossier')->latest()->limit(10);
-            },
-            'conges' => function($query) {
-                $query->latest()->limit(5);
             }
         ])->findOrFail($id);
 
@@ -99,7 +93,6 @@ class UserProfileController extends Controller
         // Statistiques globales
         $totalDailyEntries = $user->dailyEntries()->count();
         $totalTimeEntries = $user->timeEntries()->count();
-        $totalConges = $user->conges()->count();
 
         // Heures du mois en cours
         $heuresMoisEnCours = $user->dailyEntries()
@@ -119,24 +112,6 @@ class UserProfileController extends Controller
             ? round(($heuresMoisEnCours / $heuresTheoriquesMois) * 100, 1)
             : 0;
 
-        // Jours de congés pris cette année (calculé depuis les dates)
-        $debutAnnee = $now->copy()->startOfYear();
-        $congesApprouves = $user->conges()
-            ->whereBetween('date_debut', [$debutAnnee, $now])
-            ->get();
-
-        // Calculer le total des jours de congé
-        $congesPris = $congesApprouves->sum(function($conge) {
-            if ($conge->date_debut && $conge->date_fin) {
-                return $conge->date_debut->diffInDays($conge->date_fin) + 1;
-            }
-            return 0;
-        });
-
-        // Congés en attente
-        $congesEnAttente = $user->conges()
-            ->count();
-
         // Dernière entrée de temps
         $derniereEntree = $user->dailyEntries()
             ->latest('jour')
@@ -154,13 +129,10 @@ class UserProfileController extends Controller
         return [
             'total_daily_entries' => $totalDailyEntries,
             'total_time_entries' => $totalTimeEntries,
-            'total_conges' => $totalConges,
             'heures_mois_en_cours' => round($heuresMoisEnCours, 2),
             'heures_theoriques_mois' => round($heuresTheoriquesMois, 2),
             'ecart_heures' => round($ecartHeures, 2),
             'taux_realisation' => $tauxRealisation,
-            'conges_pris' => $congesPris,
-            'conges_en_attente' => $congesEnAttente,
             'derniere_entree' => $derniereEntree,
             'journees_validees' => $journeesValidees,
             'journees_en_attente' => $journeesEnAttente,

@@ -65,7 +65,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function legacyRole()    { return $this->belongsTo(Role::class, 'role_id'); }
     public function dailyEntries()  { return $this->hasMany(DailyEntry::class); }
     public function timeEntries()   { return $this->hasMany(TimeEntry::class); }
-    public function conges()        { return $this->hasMany(DemandeConge::class, 'user_id'); }
     public function weeklyValidations() { return $this->hasMany(WeeklyValidation::class); }
 
     public function dossiersCollaborations()

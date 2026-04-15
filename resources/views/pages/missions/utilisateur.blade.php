@@ -196,47 +196,43 @@
         <div class="row mt-4">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
-                        <h4>Dernières activités (10 plus récentes)</h4>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>Activité: {{ $dossier->nom }} ({{ $dossier->reference }})</h4>
+                        <span class="badge badge-lg badge-info">{{ $timeEntries->count() }} entrée{{ $timeEntries->count() > 1 ? 's' : '' }}</span>
                     </div>
                     <div class="card-body">
-                        <div class="activities">
-                            @foreach($timeEntries->take(10) as $entry)
-                            <div class="activity">
-                                <div class="activity-icon bg-primary text-white">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="activity-detail">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <div>
-                                            <strong class="text-dark">
-                                                {{ $entry->dailyEntry->jour->format('d/m/Y') }}
-                                            </strong>
-                                            <span class="text-muted ml-2">({{ $entry->plage }})</span>
-                                             @php
-                                                $heures = floor($entry->heures_reelles);
-                                                $minutes = round(($entry->heures_reelles - $heures) * 60);
-                                            @endphp
-
-
-                                            <span class="ml-3 text-muted"> {{ $heures }}h {{ $minutes }}min</span>
-                                        </div>
-                                        <div class="dropdown">
-                                            <a href="#" data-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></a>
-                                            <div class="dropdown-menu dropdown-menu-right">
-                                                <a href="{{ route('dossiers.show', $entry->dossier_id) }}" class="dropdown-item">
-                                                    <i class="fas fa-eye mr-2"></i>Voir le dossier
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <p class="mb-0">
-                                        <strong>{{ $entry->dossier->nom }}</strong>
-                                        <br><small class="text-muted">{{ $entry->travaux }}</small>
-                                    </p>
-                                </div>
-                            </div>
-                            @endforeach
+                        <div class="table-responsive">
+                            <table id="activitesTable" class="table table-hover table-striped mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Plage</th>
+                                        <th>Travaux effectués</th>
+                                        <th>Rendu</th>
+                                        <th>Durée</th>
+                                        <!-- <th class="text-center">Actions</th> -->
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($timeEntries as $entry)
+                                    @php
+                                        $heures = floor($entry->heures_reelles);
+                                        $minutes = round(($entry->heures_reelles - $heures) * 60);
+                                    @endphp
+                                    <tr>
+                                        <td data-order="{{ $entry->dailyEntry->jour->format('Y-m-d') }}">
+                                            {{ $entry->dailyEntry->jour->format('d/m/Y') }}
+                                        </td>
+                                        <td>{{ $entry->plage }}</td>
+                                        <td>{{ $entry->travaux }}</td>
+                                        <td>{{ $entry->rendu }}</td>
+                                        <td data-order="{{ $entry->heures_reelles }}">
+                                            <span class="badge badge-primary badge-pill">{{ $heures }}h {{ $minutes }}min</span>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -300,6 +296,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
+    });
+    @endif
+    @if($timeEntries->count() > 0)
+    $('#activitesTable').DataTable({
+        order: [[0, 'desc']],
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, 'Tout']],
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+        },
+        columnDefs: [
+            { orderable: false, targets: 5 }  // colonne Actions non triable
+        ]
     });
     @endif
 });
