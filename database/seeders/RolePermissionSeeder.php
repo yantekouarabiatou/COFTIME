@@ -18,18 +18,6 @@ class RolePermissionSeeder extends Seeder
         // LISTE COMPLÈTE ET ORGANISÉE DES PERMISSIONS
         // =============================================
         $permissions = [
-            ['name' => 'valider les demandes d attestation'],
-            ['name' => 'créer des demandes d attestation'],
-            ['name' => 'voir les demandes d attestation'],
-            ['name' => 'voir toutes les demandes d attestation'],
-            ['name' => 'modifier des demandes d attestation'],
-            ['name' => 'supprimer des demandes d attestation'],
-            ['name' => 'approuver les demandes d attestation'],
-            ['name' => 'refuser les demandes d attestation'],
-            ['name' => 'soumettre une démission'],
-            ['name' => 'voir les démissions'],
-            ['name' => 'approuver les démissions'],
-            ['name' => 'refuser les démissions'],
             // ================= UTILISATEURS =================
             ['name' => 'voir les utilisateurs', 'group' => 'utilisateurs'],
             ['name' => 'créer des utilisateurs', 'group' => 'utilisateurs'],
@@ -57,27 +45,6 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'supprimer des entrées journalières', 'group' => 'temps'],
             ['name' => 'valider les feuilles de temps', 'group' => 'temps'],
             ['name' => 'refuser les feuilles de temps', 'group' => 'temps'],
-
-            // ================= CONGÉS - DEMANDES =================
-            ['name' => 'voir les demandes de congés', 'group' => 'conges'],
-            ['name' => 'voir toutes les demandes de congés', 'group' => 'conges'],
-            ['name' => 'créer des demandes de congés', 'group' => 'conges'],
-            ['name' => 'modifier des demandes de congés', 'group' => 'conges'],
-            ['name' => 'supprimer des demandes de congés', 'group' => 'conges'],
-            ['name' => 'approuver les demandes de congés', 'group' => 'conges'],
-            ['name' => 'valider les demandes de congés', 'group' => 'conges'],
-            ['name' => 'refuser les demandes de congés', 'group' => 'conges'],
-
-            // ================= CONGÉS - SOLDES =================
-            ['name' => 'voir les soldes de congés', 'group' => 'conges_soldes'],
-            ['name' => 'voir tous les soldes de congés', 'group' => 'conges_soldes'],
-            ['name' => 'modifier les soldes de congés', 'group' => 'conges_soldes'],
-            ['name' => 'réinitialiser les soldes annuels', 'group' => 'conges_soldes'],
-
-            // ================= CONGÉS - DASHBOARD & RAPPORTS =================
-            ['name' => 'accéder au dashboard des congés', 'group' => 'conges_dashboard'],
-            ['name' => 'voir le calendrier des congés', 'group' => 'conges_dashboard'],
-            ['name' => 'voir les statistiques congés', 'group' => 'conges_dashboard'],
 
             // ================= EXPORTS EXCEL / PDF =================
             ['name' => 'exporter les temps en excel', 'group' => 'exports'],
@@ -169,28 +136,6 @@ class RolePermissionSeeder extends Seeder
             'voir les utilisateurs',
             'voir les postes',
 
-            // Congés - complet
-            'voir les demandes de congés',
-            'voir toutes les demandes de congés',
-            'créer des demandes de congés',
-            'modifier des demandes de congés',
-            'supprimer des demandes de congés',
-            'approuver les demandes de congés',
-            'refuser les demandes de congés',
-            'voir les soldes de congés',
-            'voir tous les soldes de congés',
-            'modifier les soldes de congés',
-            'réinitialiser les soldes annuels',
-            'accéder au dashboard des congés',
-            'voir le calendrier des congés',
-            'voir les statistiques congés',
-
-            // Exports congés & temps
-            'exporter les congés en excel',
-            'exporter les congés en pdf',
-            'exporter les soldes de congés',
-            'exporter les temps en excel',
-
             // Temps (lecture + validation)
             'voir tous les temps',
             'voir les rapports mensuels temps',
@@ -203,13 +148,6 @@ class RolePermissionSeeder extends Seeder
             'voir les répartitions par dossier',
             'voir les temps par collaborateur',
 
-            //Attestations
-            'voir les demandes d attestation',
-            'approuver les demandes d attestation',
-            'refuser les demandes d attestation',
-            'créer des demandes d attestation',
-            'soumettre une démission',
-            'voir les démissions',
             // Notifications
             'voir les notifications',
             'marquer les notifications comme lues',
@@ -235,27 +173,11 @@ class RolePermissionSeeder extends Seeder
             'refuser les feuilles de temps',
             'voir les rapports mensuels temps',
 
-            //Attestations
-            'voir les demandes d attestation',
-            'créer des demandes d attestation',
-            'modifier des demandes d attestation',
-            'supprimer des demandes d attestation',
-            'approuver les demandes d attestation',
-            'refuser les demandes d attestation',
-
             // Rapports temps
             'voir les rapports détaillés temps',
             'voir les synthèses mensuelles',
             'voir les répartitions par dossier',
             'voir les temps par collaborateur',
-
-            // Congés
-            'voir les demandes de congés',
-            'voir toutes les demandes de congés',
-            'approuver les demandes de congés',
-            'refuser les demandes de congés',
-            'voir les soldes de congés',
-            'voir le calendrier des congés',
 
             // Exports
             'exporter les temps en excel',
@@ -286,21 +208,6 @@ class RolePermissionSeeder extends Seeder
             'modifier des entrées journalières',
             'supprimer des entrées journalières',
 
-            // Congés
-            'voir les demandes de congés',
-            'créer des demandes de congés',
-            'modifier des demandes de congés',
-            'supprimer des demandes de congés',
-            'voir les soldes de congés',
-            'voir le calendrier des congés',
-
-            //Attestations
-            'créer des demandes d attestation',
-            'voir les demandes d attestation',
-            'créer des demandes d attestation',
-            'soumettre une démission',
-            'voir les démissions',
-
             // Notifications
             'voir les notifications',
             'marquer les notifications comme lues',
@@ -326,27 +233,7 @@ class RolePermissionSeeder extends Seeder
             'voir les répartitions par dossier',
             'voir les temps par collaborateur',
 
-            //Attestations et démissions
-            'voir toutes les demandes d attestation',
-            'approuver les demandes d attestation',
-            'refuser les demandes d attestation',
-            'voir les démissions',
-            'approuver les démissions',
-            'refuser les démissions',
-
-            // Congés
-            'voir toutes les demandes de congés',
-            'voir tous les soldes de congés',
-            'approuver les demandes de congés',
-            'refuser les demandes de congés',
-            'modifier les soldes de congés',
-            'accéder au dashboard des congés',
-            'voir le calendrier des congés',
-            'voir les statistiques congés',
-
             // Exports
-            'exporter les congés en excel',
-            'exporter les congés en pdf',
             'exporter les temps en excel',
             'exporter les temps en pdf',
             'exporter les soldes de congés',
@@ -386,8 +273,6 @@ class RolePermissionSeeder extends Seeder
             'voir les temps par collaborateur',
 
             //attestations
-            'voir les demandes d attestation',
-
             'voir les statistiques',
             'voir les statistiques générales',
             'exporter les temps en excel',
