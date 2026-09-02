@@ -1,6 +1,6 @@
 @extends('layaout')
 
-@section('title', 'Nouveau Dossier')
+@section('title', 'Nouvelle Activité')
 
 @section('content')
 <section class="section">
@@ -227,7 +227,7 @@
                             <div class="form-group">
                                 <label>Description</label>
                                 <textarea name="description" class="form-control @error('description') is-invalid @enderror"
-                                          rows="4" placeholder="Description détaillée du dossier...">{{ old('description') }}</textarea>
+                                          rows="4" placeholder="Description détaillée de l'activité...">{{ old('description') }}</textarea>
                                 @error('description')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror

@@ -197,12 +197,13 @@ textarea.form-input-ts { resize: vertical; min-height: 70px; }
 .select2-dropdown { border: 1.5px solid var(--ts-border) !important; border-radius: 10px !important; font-family: 'DM Sans', sans-serif; }
 .select2-container--default .select2-results__option--highlighted { background: var(--ts-blue-lt) !important; color: var(--ts-blue) !important; }
 
+
 /* ── New Activity Modal ── */
 .ts-modal-overlay {
     position: fixed; inset: 0;
     background: rgba(15,23,42,.5);
     backdrop-filter: blur(6px);
-    z-index: 9999;
+    z-index: 99999 !important;  /* plus haut que la navbar */
     display: none; align-items: center; justify-content: center;
 }
 .ts-modal-overlay.open { display: flex; }
@@ -214,6 +215,11 @@ textarea.form-input-ts { resize: vertical; min-height: 70px; }
     width: 100%; max-width: 520px;
     animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
     max-height: 90vh; overflow-y: auto;
+}
+/* Si la navbar a un z-index élevé, on le neutralise quand la modale est ouverte */
+body.modal-ts-open .main-navbar,
+body.modal-ts-open .navbar-bg {
+    z-index: 1 !important;
 }
 @keyframes modalIn {
     from { opacity:0; transform:scale(.92) translateY(-20px); }
@@ -291,7 +297,7 @@ textarea.form-input-ts { resize: vertical; min-height: 70px; }
                     </div>
                     <div class="form-group-ts">
                         <label class="form-label-ts">Heures théoriques <span style="color:var(--ts-red);">*</span></label>
-                        <input type="number" step="0.25" min="0" max="24" name="heures_theoriques"
+                        <input type="number" step="0.25" min="0" max="24" name="heures_theoriques" readonly
                             class="form-input-ts" value="{{ old('heures_theoriques', 8) }}" required>
                     </div>
                 </div>
@@ -319,7 +325,7 @@ textarea.form-input-ts { resize: vertical; min-height: 70px; }
                         <div class="activity-header">
                             <div style="display:flex;align-items:center;gap:10px;">
                                 <div class="activity-num">1</div>
-                                <span style="font-size:13px;font-weight:600;color:#0F172A;">Activité 1</span>
+                                <span style="font-size:13px;font-weight:600;color:#0F172A;">Tâche 1</span>
                             </div>
                             <button type="button" class="btn-ts danger-outline sm remove-row">
                                 <i class="fas fa-trash"></i> Supprimer
@@ -328,9 +334,9 @@ textarea.form-input-ts { resize: vertical; min-height: 70px; }
 
                         <div class="activity-grid">
                             <div class="form-group-ts" style="grid-column: 1 / -1;">
-                                <label class="form-label-ts">Dossier / Activité <span style="color:var(--ts-red);">*</span></label>
+                                <label class="form-label-ts">Activité <span style="color:var(--ts-red);">*</span></label>
                                 <select name="time_entries[0][dossier_id]" class="form-input-ts select2 dossier-select" required>
-                                    <option value="">Choisir un dossier…</option>
+                                    <option value="">Choisir une activité…</option>
                                     @foreach($dossiers as $dossier)
                                         <option value="{{ $dossier->id }}"
                                             data-client="{{ $dossier->client->nom ?? 'Sans client' }}">
@@ -381,7 +387,7 @@ textarea.form-input-ts { resize: vertical; min-height: 70px; }
                 </div>
 
                 <button type="button" id="add-row">
-                    <i class="fas fa-plus-circle"></i> Ajouter une activité
+                    <i class="fas fa-plus-circle"></i> Ajouter une tâche
                 </button>
 
             </div>
@@ -432,7 +438,7 @@ textarea.form-input-ts { resize: vertical; min-height: 70px; }
             <div class="ts-modal__icon"><i class="fas fa-folder-plus"></i></div>
             <div>
                 <h3 class="ts-modal__title">Nouvelle activité</h3>
-                <p class="ts-modal__sub">Créer un dossier et l'associer automatiquement à cette ligne</p>
+                <p class="ts-modal__sub">Créer une activité et l'associer automatiquement à cette ligne</p>
             </div>
         </div>
 
@@ -505,8 +511,8 @@ textarea.form-input-ts { resize: vertical; min-height: 70px; }
 <script src="{{ asset('assets/bundles/select2/dist/js/select2.full.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-$(function() {
 
+$(function() {
     const CSRF = '{{ csrf_token() }}';
     let rowIndex = 1;
     let currentTriggerSelect = null;
@@ -517,12 +523,11 @@ $(function() {
     }
     initSelect2();
 
-    // ── Modal open/close ──────────────────────────────────────
     function openModal(triggerSelect) {
         currentTriggerSelect = triggerSelect;
         document.getElementById('new-dossier-modal').classList.add('open');
+        document.body.classList.add('modal-ts-open'); // ← ajouter
         generateRef('');
-        // Init Select2 dans le modal
         if (!$('#modal-client').data('select2')) {
             $('#modal-client').select2({ dropdownParent: $('#new-dossier-modal'), width: '100%', placeholder: 'Sans client' });
         }
@@ -530,8 +535,8 @@ $(function() {
 
     function closeModal() {
         document.getElementById('new-dossier-modal').classList.remove('open');
+        document.body.classList.remove('modal-ts-open'); // ← ajouter
         document.getElementById('new-dossier-form').reset();
-        // Décocher toutes les checkboxes "autre"
         document.querySelectorAll('.autre-cb').forEach(cb => cb.checked = false);
         currentTriggerSelect = null;
     }
@@ -639,7 +644,7 @@ $(function() {
             <div class="activity-header">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <div class="activity-num">${num}</div>
-                    <span style="font-size:13px;font-weight:600;color:#0F172A;">Activité ${num}</span>
+                    <span style="font-size:13px;font-weight:600;color:#0F172A;">Tâche ${num}</span>
                 </div>
                 <button type="button" class="btn-ts danger-outline sm remove-row">
                     <i class="fas fa-trash"></i> Supprimer
@@ -648,7 +653,7 @@ $(function() {
 
             <div class="activity-grid">
                 <div class="form-group-ts" style="grid-column: 1 / -1;">
-                    <label class="form-label-ts">Dossier / Activité <span style="color:var(--ts-red);">*</span></label>
+                    <label class="form-label-ts">Activité <span style="color:var(--ts-red);">*</span></label>
                     <select name="time_entries[${rowIndex}][dossier_id]" class="form-input-ts select2 dossier-select" required>
                         ${$('.dossier-select').first().html()}
                     </select>

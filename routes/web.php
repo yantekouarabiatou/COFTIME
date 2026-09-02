@@ -15,13 +15,10 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\DailyEntryController;
 use App\Http\Controllers\DossierController;
-use App\Http\Controllers\CongeController;
 use App\Http\Controllers\MissionAnalyseController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RapportController;
-use App\Http\Controllers\RegleCongeController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\SoldeCongeController;
 use App\Http\Controllers\StatisticsController;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\UserProfileController;
@@ -59,8 +56,6 @@ Route::middleware(['auth', 'otp.verified'])->group(function () {
     Route::post('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
     Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggleStatus');
 
-    Route::get('/test-leave-mail', [CongeController::class, 'store'])->name('test.leave.mail');
-
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
@@ -77,12 +72,6 @@ Route::middleware(['auth', 'otp.verified'])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('postes', PosteController::class);
     // Cadeau Invitations
-
-    Route::get('/conges/validation-finale', [CongeController::class, 'validationFinaleIndex'])
-        ->name('conges.validation-finale.index');
-
-    Route::post('/conges/{demande}/valider-finale', [CongeController::class, 'validerFinale'])
-        ->name('conges.valider-finale');
 
     Route::get('/error_404', function () {
         return view('errors.errors-404');
@@ -340,66 +329,9 @@ Route::middleware(['auth', 'otp.verified'])->group(function () {
 
     Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
-        // ================= RÈGLES DE CONGÉS =================
-
-        Route::get('regles-conges', [RegleCongeController::class, 'index'])
-            ->name('regles-conges.index');
-
-        Route::get('regles-conges/create', [RegleCongeController::class, 'create'])
-            ->name('regles-conges.create');
-
-        Route::post('regles-conges', [RegleCongeController::class, 'store'])
-            ->name('regles-conges.store');
-
-        Route::get('regles-conges/{regle}', [RegleCongeController::class, 'show'])
-            ->name('regles-conges.show');
-
-        Route::get('regles-conges/{regle}/edit', [RegleCongeController::class, 'edit'])
-            ->name('regles-conges.edit');
-
-        Route::put('regles-conges/{regle}', [RegleCongeController::class, 'update'])
-            ->name('regles-conges.update');
-
-        Route::delete('regles-conges/{regle}', [RegleCongeController::class, 'destroy'])
-            ->name('regles-conges.destroy');
-
-        // ================= API =================
-
-        Route::get('api/regles-conges/jours-acquis', [RegleCongeController::class, 'getJoursAcquis'])
-            ->name('regles-conges.jours-acquis');
-
         // Route d'import des missions depuis Cofplan
         Route::post('/missions/import', [MissionImportController::class, 'import'])
             ->name('missions.import');
-    });
-
-    Route::middleware(['auth'])->group(function () {
-        // Routes pour les employés
-        Route::get('/conges/solde', [CongeController::class, 'solde'])->name('conges.solde');
-        Route::get('/conges/calendrier', [CongeController::class, 'calendrier'])->name('conges.calendrier');
-
-        // Route pour annuler une demande
-        Route::post('/conges/{demande}/annuler', [CongeController::class, 'annuler'])->name('conges.annuler');
-
-        // Routes pour admin/manager
-        Route::middleware(['role:admin|manager'])->group(function () {
-            Route::get('/conges/dashboard', [CongeController::class, 'dashboard'])->name('conges.dashboard');
-            Route::post('/conges/{demande}/traiter', [CongeController::class, 'traiter'])->name('conges.traiter');
-            Route::get('/conges/solde/{user}', [CongeController::class, 'solde'])->name('conges.solde.user');
-        });
-    });
-
-    Route::resource('conges', CongeController::class)
-        ->parameters(['conges' => 'demande']);
-
-    Route::prefix('export')->group(function () {
-        Route::get('/excel', [CongeController::class, 'exportExcel'])->name('conges.export.excel');
-        Route::get('/pdf', [CongeController::class, 'exportPdf'])->name('conges.export.pdf');
-        Route::get('/csv', [CongeController::class, 'exportCsv'])->name('conges.export.csv');
-    });
-
-    Route::middleware(['auth', 'role:admin'])->group(function () {
-        Route::post('/conges/solde/{user}/ajuster', [CongeController::class, 'ajusterSolde'])->name('conges.ajuster-solde');
     });
 
 
@@ -436,16 +368,9 @@ Route::middleware(['auth', 'otp.verified'])->group(function () {
         });
     });
 
-    Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-        Route::resource('soldes', SoldeCongeController::class);
-    });
-
     Route::post('/clients/import', [ClientImportController::class, 'import'])
         ->name('clients.import')
         ->middleware('auth'); // si besoin
-    Route::get('/conges/get-feries', [CongeController::class, 'getFeries'])
-        ->name('conges.get-feries')
-        ->middleware('auth');
     // Route API à créer dans routes/api.php
     Route::get('/personnel-details', function (Request $request) {
         $personnel = User::with(['poste', 'timeEntries' => function ($q) use ($request) {

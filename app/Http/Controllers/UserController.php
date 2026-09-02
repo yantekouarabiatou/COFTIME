@@ -69,16 +69,14 @@ class UserController extends Controller
         $user = User::with([
             'poste',
             'creator',
-            'roles', // Charger les rôles Spatie
+            'roles',
+            'manager.roles',
             'dailyEntries' => function ($query) {
                 $query->latest('jour')->limit(10);
             },
             'timeEntries' => function ($query) {
                 $query->with('dossier')->latest()->limit(10);
             },
-            'conges' => function ($query) {
-                $query->latest()->limit(5);
-            }
         ])->findOrFail($id);
 
         // Récupérer la liste des postes
@@ -95,9 +93,15 @@ class UserController extends Controller
      */
     public function create()
     {
-        $postes = Poste::orderBy('intitule')->get(); // Tous les postes pour le select
-        $roles = Role::orderBy('name')->get(); // Tous les postes pour le select
-        return view('pages.users.create', compact('postes', 'roles'));
+        $postes = Poste::orderBy('intitule')->get();
+        $roles = Role::orderBy('name')->get();
+        $managers = User::whereDoesntHave('roles', function($query) {
+                        $query->where('name', 'collaborateur');
+                    })
+                    ->where('id', '!=', auth()->id()) // Exclure l'utilisateur connecté
+                    ->orderBy('nom')
+                    ->get();
+        return view('pages.users.create', compact('postes', 'roles', 'managers'));
     }
 
     /**
@@ -118,6 +122,7 @@ class UserController extends Controller
             'role_id' => 'required|exists:roles,id',
             'is_active' => 'required|in:0,1',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'manager_id' => 'nullable|exists:users,id',
         ], [
             'nom.required' => 'Le nom est obligatoire',
             'prenom.required' => 'Le prénom est obligatoire',
@@ -137,6 +142,7 @@ class UserController extends Controller
             'photo.image' => 'Le fichier doit être une image',
             'photo.mimes' => 'La photo doit être au format JPG, JPEG ou PNG',
             'photo.max' => 'La photo ne doit pas dépasser 2 Mo',
+            'manager_id.exists' => "Le manager sélectionné n'existe pas",
         ]);
 
         try {
@@ -161,6 +167,7 @@ class UserController extends Controller
                 'is_active' => $validated['is_active'],
                 'photo' => $photoPath,
                 'created_by' => auth()->id(),
+                'manager_id' => $validated['manager_id'] ?? null,
             ]);
 
             // 2. ASSIGNATION SPATIE (C'est ici que la magie opère)
@@ -203,9 +210,15 @@ class UserController extends Controller
     {
         $postes = Poste::all();
         $roles = Role::all();
-        $roleActuel = $user->roles->first(); // Le rôle actuel de l'utilisateur
-        
-        return view('pages.users.edit', compact('user', 'postes', 'roles', 'roleActuel'));
+        $roleActuel = $user->roles->first();
+        $managers = User::whereDoesntHave('roles', function($query) {
+                        $query->where('name', 'collaborateur');
+                    })
+                    ->where('id', '!=', $user->id) // Exclure l'utilisateur lui-même
+                    ->orderBy('nom')
+                    ->get();
+
+        return view('pages.users.edit', compact('user', 'postes', 'roles', 'roleActuel', 'managers'));
     }
 
     /**
@@ -226,6 +239,7 @@ class UserController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'role_id' => 'required|exists:roles,id',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'manager_id' => 'nullable|exists:users,id',
         ], [
             'nom.required' => 'Le nom est obligatoire',
             'prenom.required' => 'Le prénom est obligatoire',
@@ -244,6 +258,8 @@ class UserController extends Controller
             'photo.image' => 'Le fichier doit être une image',
             'photo.mimes' => 'La photo doit être au format JPG, JPEG ou PNG',
             'photo.max' => 'La photo ne doit pas dépasser 2 Mo',
+            'manager_id.exists' => "Le manager sélectionné n'existe pas",
+
         ]);
         try {
             $oldPhotoPath = $user->photo;
@@ -270,6 +286,7 @@ class UserController extends Controller
                 'telephone' => $validated['telephone'] ?? null,
                 'sexe' => $validated['sexe'] ?? null,
                 'is_active' => $validated['is_active'],
+                'manager_id' => $validated['manager_id'] ?? null,
             ];
 
             if ($newPhotoPath) {
@@ -382,7 +399,6 @@ class UserController extends Controller
         // Statistiques globales
         $totalDailyEntries = $user->dailyEntries()->count();
         $totalTimeEntries = $user->timeEntries()->count();
-        $totalConges = $user->conges()->count();
 
         // Heures du mois en cours
         $heuresMoisEnCours = $user->dailyEntries()
@@ -402,24 +418,6 @@ class UserController extends Controller
             ? round(($heuresMoisEnCours / $heuresTheoriquesMois) * 100, 1)
             : 0;
 
-        // Jours de congés pris cette année (calculé depuis les dates)
-        $debutAnnee = $now->copy()->startOfYear();
-        $congesApprouves = $user->conges()
-            ->whereBetween('date_debut', [$debutAnnee, $now])
-            ->get();
-
-        // Calculer le total des jours de congé
-        $congesPris = $congesApprouves->sum(function ($conge) {
-            if ($conge->date_debut && $conge->date_fin) {
-                return $conge->date_debut->diffInDays($conge->date_fin) + 1;
-            }
-            return 0;
-        });
-
-        // Congés en attente
-        $congesEnAttente = $user->conges()
-            ->count();
-
         // Dernière entrée de temps
         $derniereEntree = $user->dailyEntries()
             ->latest('jour')
@@ -437,13 +435,10 @@ class UserController extends Controller
         return [
             'total_daily_entries' => $totalDailyEntries,
             'total_time_entries' => $totalTimeEntries,
-            'total_conges' => $totalConges,
             'heures_mois_en_cours' => round($heuresMoisEnCours, 2),
             'heures_theoriques_mois' => round($heuresTheoriquesMois, 2),
             'ecart_heures' => round($ecartHeures, 2),
             'taux_realisation' => $tauxRealisation,
-            'conges_pris' => $congesPris,
-            'conges_en_attente' => $congesEnAttente,
             'derniere_entree' => $derniereEntree,
             'journees_validees' => $journeesValidees,
             'journees_en_attente' => $journeesEnAttente,

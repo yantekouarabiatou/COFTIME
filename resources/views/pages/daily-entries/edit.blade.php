@@ -46,7 +46,11 @@ textarea.form-input-ts { resize:vertical;min-height:70px; }
 
 .activity-card { background:#fff;border:1.5px solid var(--ts-border);border-left:4px solid var(--ts-blue);border-radius:var(--ts-radius);padding:20px;margin-bottom:12px;animation:slideDown .25s ease;position:relative;transition:box-shadow .2s; }
 .activity-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.08); }
-.activity-card.existing { border-left-color:#244584; }
+.activity-card.existing {
+    border-left-color: #244584;
+    background: linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 60%, #FAFFFE 100%);
+    box-shadow: 0 2px 8px rgba(36,69,132,.10), inset 0 0 0 1px rgba(36,69,132,.07);
+}
 @keyframes slideDown { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
 
 .activity-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px; }
@@ -190,7 +194,7 @@ textarea.form-input-ts { resize:vertical;min-height:70px; }
                     </div>
                     <div class="form-group-ts">
                         <label class="form-label-ts">Heures théoriques <span style="color:var(--ts-red);">*</span></label>
-                        <input type="number" step="0.25" min="0" max="24" name="heures_theoriques"
+                        <input type="number" step="0.25" min="0" max="24" name="heures_theoriques" readonly
                             class="form-input-ts" value="{{ $dailyEntry->heures_theoriques }}" required>
                     </div>
                 </div>
@@ -238,8 +242,20 @@ textarea.form-input-ts { resize:vertical;min-height:70px; }
                             <div style="display:flex;align-items:center;gap:10px;">
                                 <div class="activity-num existing">{{ $index + 1 }}</div>
                                 <div>
-                                    <span style="font-size:13px;font-weight:600;color:#0F172A;">Activité {{ $index + 1 }}</span>
-                                    <span style="font-size:11px;color:var(--ts-slate);margin-left:6px;">existante</span>
+                                    <span style="font-size:13px;font-weight:600;color:#0F172A;">Tâche {{ $index + 1 }}</span>
+                                    <span style="
+                                        font-size:11px;
+                                        color:#1D4ED8;
+                                        background:#DBEAFE;
+                                        border:1px solid #BFDBFE;
+                                        border-radius:20px;
+                                        padding:2px 10px;
+                                        margin-left:6px;
+                                        font-weight:600;
+                                        letter-spacing:.3px;
+                                    ">
+                                        <i class="fas fa-database" style="font-size:9px;margin-right:3px;"></i> déjà enregistrée
+                                    </span>
                                 </div>
                             </div>
                             <button type="button" class="btn-ts danger-outline sm remove-row">
@@ -247,14 +263,24 @@ textarea.form-input-ts { resize:vertical;min-height:70px; }
                             </button>
                         </div>
 
+                        <div style="
+                            display:flex;align-items:center;gap:7px;
+                            background:#DBEAFE;border:1px solid #BFDBFE;border-radius:8px;
+                            padding:7px 14px;margin-bottom:14px;
+                            font-size:12px;color:#1E40AF;font-weight:500;
+                        ">
+                            <i class="fas fa-history"></i>
+                            Cette tâche était déjà enregistrée — vous pouvez la modifier ou la supprimer.
+                        </div>
+
                         <input type="hidden" name="time_entries[{{ $index }}][id]" value="{{ $entry->id }}">
 
                         <div class="activity-grid">
                             <div class="form-group-ts" style="grid-column:1/-1;">
-                                <label class="form-label-ts">Dossier / Activité <span style="color:var(--ts-red);">*</span></label>
+                                <label class="form-label-ts">Activité <span style="color:var(--ts-red);">*</span></label>
                                 <select name="time_entries[{{ $index }}][dossier_id]"
                                     class="form-input-ts select2 dossier-select" required>
-                                    <option value="">Choisir un dossier…</option>
+                                    <option value="">Choisir une activité…</option>
                                     @foreach($dossiers as $dossier)
                                         <option value="{{ $dossier->id }}"
                                             data-client="{{ $dossier->client->nom ?? 'Sans client' }}"
@@ -310,7 +336,7 @@ textarea.form-input-ts { resize:vertical;min-height:70px; }
                 </div>
 
                 <button type="button" id="add-row">
-                    <i class="fas fa-plus-circle"></i> Ajouter une activité
+                    <i class="fas fa-plus-circle"></i> Ajouter une tâche
                 </button>
             </div>
         </div>
@@ -358,7 +384,7 @@ textarea.form-input-ts { resize:vertical;min-height:70px; }
             <div class="ts-modal__icon"><i class="fas fa-folder-plus"></i></div>
             <div>
                 <h3 class="ts-modal__title">Nouvelle activité</h3>
-                <p class="ts-modal__sub">Créer un dossier et l'associer automatiquement à cette ligne</p>
+                <p class="ts-modal__sub">Créer une activité et l'associer automatiquement à cette ligne</p>
             </div>
         </div>
         <form id="new-dossier-form">
@@ -553,7 +579,7 @@ $(function() {
                 <div style="display:flex;align-items:center;gap:10px;">
                     <div class="activity-num new">${num}</div>
                     <div>
-                        <span style="font-size:13px;font-weight:600;color:#0F172A;">Activité ${num}</span>
+                        <span style="font-size:13px;font-weight:600;color:#0F172A;">Tâche ${num}</span>
                         <span style="font-size:11px;color:var(--ts-slate);margin-left:6px;">nouvelle</span>
                     </div>
                 </div>
@@ -563,7 +589,7 @@ $(function() {
             </div>
             <div class="activity-grid">
                 <div class="form-group-ts" style="grid-column:1/-1;">
-                    <label class="form-label-ts">Dossier / Activité <span style="color:var(--ts-red);">*</span></label>
+                    <label class="form-label-ts">Activité <span style="color:var(--ts-red);">*</span></label>
                     <select name="time_entries[${rowIndex}][dossier_id]" class="form-input-ts select2 dossier-select" required>
                         ${$('.dossier-select').first().html()}
                     </select>
@@ -672,14 +698,14 @@ $(function() {
         document.querySelectorAll('.heures-input').forEach(i => total += parseFloat(i.value) || 0);
         if (total <= 0) {
             e.preventDefault();
-            Swal.fire({ icon:'error', title:'Aucune heure saisie', text:'Vous devez saisir au moins une activité.' });
+            Swal.fire({ icon:'error', title:'Aucune heure saisie', text:'Vous devez saisir au moins une tâche.' });
             return;
         }
         let emptySelect = false;
         document.querySelectorAll('.dossier-select').forEach(s => { if (!s.value) emptySelect = true; });
         if (emptySelect) {
             e.preventDefault();
-            Swal.fire({ icon:'warning', title:'Dossier manquant', text:'Chaque activité doit avoir un dossier sélectionné.' });
+            Swal.fire({ icon:'warning', title:'Activité manquante', text:'Chaque tâche doit avoir une activité sélectionnée.' });
             return;
         }
         document.getElementById('submit-btn').disabled = true;

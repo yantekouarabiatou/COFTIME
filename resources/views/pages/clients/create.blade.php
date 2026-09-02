@@ -241,17 +241,7 @@ $(document).ready(function() {
         $(this).val(value);
     });
 
-    // Format téléphone
-    $('input[name="telephone"]').on('input', function() {
-        var value = $(this).val().replace(/\D/g, '');
-        if (value.length > 10) {
-            value = value.substr(0, 10);
-        }
-        if (value.length > 0) {
-            value = value.replace(/(\d{2})(?=\d)/g, '$1 ');
-        }
-        $(this).val(value);
-    });
+
 });
 </script>
 @endpush

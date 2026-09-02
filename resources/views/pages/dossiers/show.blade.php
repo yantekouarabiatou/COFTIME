@@ -5,14 +5,14 @@ use App\Models\User;
 
 @extends('layaout')
 
-@section('title', 'Dossier - ' . $dossier->nom)
+@section('title', 'Activité - ' . $dossier->nom)
 
 @section('content')
 <section class="section">
     <div class="section-header">
-        <h1><i class="fas fa-folder-open"></i> Dossier: {{ $dossier->nom }}</h1>
+        <h1><i class="fas fa-folder-open"></i> Activité: {{ $dossier->nom }}</h1>
         <div class="section-header-breadcrumb">
-            <div class="breadcrumb-item"><a href="{{ route('dossiers.index') }}">Dossiers</a></div>
+            <div class="breadcrumb-item"><a href="{{ route('dossiers.index') }}">Activités</a></div>
             <div class="breadcrumb-item active">{{ $dossier->reference }}</div>
         </div>
     </div>
@@ -112,7 +112,7 @@ use App\Models\User;
                                     <tr>
                                         <th>Collaborateur</th>
                                         <th class="text-center">Heures totales</th>
-                                        <th class="text-center">Interventions</th>
+                                        <th class="text-center">Activités</th>
                                         <th class="text-center">Heure moyenne</th>
                                         <th class="text-center">Dernière activité</th>
                                         <th class="text-center">Actions</th>
@@ -214,10 +214,23 @@ use App\Models\User;
                                                 @endif
                                             </td>
                                             <td class="text-center align-middle">
-                                                <a href="{{ route('missions.utilisateur.dossier', ['user' => $personnel->id, 'dossier' => $dossier->id]) }}"
-                                                   class="btn btn-sm btn-outline-primary" title="Détails">
-                                                    <i class="fas fa-chart-pie"></i>
-                                                </a>
+                                                @php
+                                                    $authUser     = auth()->user();
+                                                    $canSeeDetail = $authUser->hasRole('directeur-general')
+                                                        || $authUser->id === $personnel->id
+                                                        || ($authUser->hasRole('manager') && $authUser->isManagerOf($personnel->id));
+                                                @endphp
+
+                                                @if($canSeeDetail)
+                                                    <a href="{{ route('missions.utilisateur.dossier', ['user' => $personnel->id, 'dossier' => $dossier->id]) }}"
+                                                    class="btn btn-sm btn-outline-primary" title="Détails">
+                                                        <i class="fas fa-chart-pie"></i>
+                                                    </a>
+                                                @else
+                                                    <span class="btn btn-sm btn-outline-secondary disabled" title="Accès non autorisé">
+                                                        <i class="fas fa-chart-pie"></i>
+                                                    </span>
+                                                @endif
                                             </td>
                                         </tr>
                                     @empty
@@ -226,7 +239,7 @@ use App\Models\User;
                                                 <div class="empty-state">
                                                     <i class="fas fa-clock fa-3x text-muted mb-3"></i>
                                                     <h5 class="text-muted">Aucune heure enregistrée</h5>
-                                                    <p class="text-muted">Aucun collaborateur n'a encore travaillé sur ce dossier.</p>
+                                                    <p class="text-muted">Aucun collaborateur n'a encore travaillé sur cette activité.</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -451,12 +464,29 @@ use App\Models\User;
                                                     <div class="font-weight-bold">{{ $collaborateur->prenom }} {{ $collaborateur->nom }}</div>
                                                     <small class="text-muted">{{ $collaborateur->poste->intitule ?? 'Non défini' }}</small>
                                                 </div>
+                                               @php
+                                                    $authUser        = auth()->user();
+                                                    $canSeeProfile   = $authUser->hasRole('directeur-general')
+                                                        || $authUser->id === $collaborateur->id
+                                                        || ($authUser->hasRole('manager') && $authUser->isManagerOf($collaborateur->id));
+
+                                                    $canRemove       = $authUser->hasRole('directeur-general')
+                                                        || $authUser->id === $dossier->created_by;
+                                                @endphp
+
                                                 <div class="btn-group">
-                                                    <a href="{{ route('user-profile.show', $collaborateur->id) }}"
-                                                       class="btn btn-sm btn-outline-info" title="Voir profil">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    @if(auth()->user()->id == $dossier->created_by || auth()->user()->hasRole(['admin', 'super-admin']))
+                                                    @if($canSeeProfile)
+                                                        <a href="{{ route('user-profile.show', $collaborateur->id) }}"
+                                                        class="btn btn-sm btn-outline-info" title="Voir profil">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                    @else
+                                                        <span class="btn btn-sm btn-outline-secondary disabled" title="Accès non autorisé">
+                                                            <i class="fas fa-eye"></i>
+                                                        </span>
+                                                    @endif
+
+                                                    @if($canRemove)
                                                         <button type="button"
                                                                 class="btn btn-sm btn-outline-danger remove-collaborateur"
                                                                 data-user-id="{{ $collaborateur->id }}"
@@ -540,13 +570,13 @@ use App\Models\User;
                                class="btn btn-outline-primary btn-block text-left">
                                 <i class="fas fa-plus-circle mr-2"></i> Nouvelle feuille de temps
                             </a>
-                            <a href="{{ route('missions.analyse.show', $dossier->id) }}"
+                            <!-- <a href="{{ route('missions.analyse.show', $dossier->id) }}"
                                class="btn btn-outline-info btn-block text-left">
                                 <i class="fas fa-chart-bar mr-2"></i> Analyse des performances
-                            </a>
+                            </a> -->
                             <a href="{{ route('dossiers.edit', $dossier) }}"
                                class="btn btn-outline-warning btn-block text-left">
-                                <i class="fas fa-edit mr-2"></i> Modifier le dossier
+                                <i class="fas fa-edit mr-2"></i> Modifier l'activité
                             </a>
                             <button type="button" class="btn btn-outline-danger btn-block text-left" id="delete-dossier-btn"
                                     data-url="{{ route('dossiers.destroy', $dossier) }}">
@@ -580,7 +610,7 @@ use App\Models\User;
             <div class="modal-body">
                 <p class="text-muted mb-3">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Sélectionnez les collaborateurs à assigner à ce dossier. Le créateur du dossier est toujours inclus.
+                    Sélectionnez les collaborateurs à assigner à cette activité. Le créateur de l'activité est toujours inclus.
                 </p>
                 <div class="form-group">
                     <label><strong>Collaborateurs</strong></label>
@@ -879,7 +909,7 @@ $('#delete-dossier-btn').on('click', function() {
 
     Swal.fire({
         title: 'Êtes-vous sûr ?',
-        html: `Voulez-vous vraiment supprimer le dossier <strong>{{ $dossier->nom }}</strong> ?<br>
+        html: `Voulez-vous vraiment supprimer l'activité <strong>{{ $dossier->nom }}</strong> ?<br>
                <small class="text-danger">Cette action est irréversible.</small>`,
         icon: 'warning',
         showCancelButton: true,
@@ -915,7 +945,7 @@ $('#delete-dossier-btn').on('click', function() {
             Swal.fire({
                 icon: 'success',
                 title: 'Supprimé !',
-                text: 'Le dossier a été supprimé avec succès.',
+                text: 'L\'activité a été supprimée avec succès.',
                 timer: 2000,
                 showConfirmButton: false
             }).then(() => {

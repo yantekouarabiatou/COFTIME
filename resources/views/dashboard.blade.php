@@ -29,14 +29,14 @@ use App\Helpers\UserHelper;
 
     <!-- Cartes de statistiques personnelles -->
     <div class="row">
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
+        <div class="col-xl-4 col-lg-6 col-md-6 col-sm-6 col-xs-12">
             <div class="card card-statistic-1 hover-card">
                 <div class="card-icon bg-primary">
                     <i class="fas fa-folder"></i>
                 </div>
                 <div class="card-wrap">
                     <div class="card-header">
-                        <h4>Mes Dossiers</h4>
+                        <h4>Mes Activités</h4>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
@@ -50,7 +50,7 @@ use App\Helpers\UserHelper;
             </div>
         </div>
 
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
+        <div class="col-xl-4 col-lg-6 col-md-6 col-sm-6 col-xs-12">
             <div class="card card-statistic-1 hover-card">
                 <div class="card-icon bg-success">
                     <i class="fas fa-clock"></i>
@@ -71,7 +71,7 @@ use App\Helpers\UserHelper;
             </div>
         </div>
 
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
+        <div class="col-xl-4 col-lg-6 col-md-6 col-sm-6 col-xs-12">
             <div class="card card-statistic-1 hover-card">
                 <div class="card-icon bg-info">
                     <i class="fas fa-chart-line"></i>
@@ -91,27 +91,6 @@ use App\Helpers\UserHelper;
                 </div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
-            <div class="card card-statistic-1 hover-card">
-                <div class="card-icon bg-warning">
-                    <i class="fas fa-umbrella-beach"></i>
-                </div>
-                <div class="card-wrap">
-                    <div class="card-header">
-                        <h4>Mes Congés en cours</h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h4 class="mb-0" id="mes-conges">
-                                <i class="fas fa-spinner fa-spin"></i>
-                            </h4>
-                            <span class="badge badge-pill badge-warning" id="conges-badge">En cours</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Statistiques rapides personnelles -->
@@ -120,24 +99,19 @@ use App\Helpers\UserHelper;
             <div class="card modern-card">
                 <div class="card-body p-4">
                     <div class="row">
-                        <div class="col-md-3 text-center border-right">
+                        <div class="col-md-4 text-center border-right">
                             <i class="fas fa-calendar-week fa-2x mb-2"></i>
                             <h6 class="mb-1">Heures (5 jours)</h6>
                             <h4 class="font-weight-bold " id="heures-semaine">-</h4>
                         </div>
-                        <div class="col-md-3 text-center border-right">
+                        <div class="col-md-4 text-center border-right">
                             <i class="fas fa-folder-open fa-2x mb-2 text-info"></i>
-                            <h6 class="mb-1">Dossiers travaillés</h6>
+                            <h6 class="mb-1">Activités travaillées</h6>
                             <h4 class="font-weight-bold text-info" id="dossiers-semaine">-</h4>
                         </div>
-                        <div class="col-md-3 text-center border-right">
-                            <i class="fas fa-calendar-check fa-2x mb-2 text-success"></i>
-                            <h6 class="mb-1">Congés (Ce mois)</h6>
-                            <h4 class="font-weight-bold text-success" id="conges-mois">-</h4>
-                        </div>
-                        <div class="col-md-3 text-center">
+                        <div class="col-md-4 text-center">
                             <i class="fas fa-briefcase fa-2x mb-2 text-warning"></i>
-                            <h6 class="mb-1">Dossiers actifs</h6>
+                            <h6 class="mb-1">Activités actives</h6>
                             <h4 class="font-weight-bold text-warning" id="dossiers-actifs">-</h4>
                         </div>
                     </div>
@@ -187,30 +161,17 @@ use App\Helpers\UserHelper;
         </div>
     </div>
 
-    <!-- Mes dossiers et congés -->
+    <!-- Mes dossiers-->
     <div class="row">
         <!-- Mes dossiers les plus actifs -->
-        <div class="col-lg-6 col-md-12">
+        <div class="col-lg-12 col-md-12">
             <div class="card modern-card">
                 <div class="card-header">
-                    <h4><i class="fas fa-fire text-danger"></i> Mes Dossiers les Plus Actifs</h4>
+                    <h4><i class="fas fa-fire text-danger"></i> Mes Activités les Plus Actifs</h4>
                     <small class="text-muted">Par nombre d'heures ce mois</small>
                 </div>
                 <div class="card-body">
                     <canvas id="chartMesDossiers" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mes congés par type -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card modern-card">
-                <div class="card-header">
-                    <h4><i class="fas fa-chart-pie text-warning"></i> Répartition de Mes Congés</h4>
-                    <small class="text-muted">Par type (année en cours)</small>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartMesConges" height="250"></canvas>
                 </div>
             </div>
         </div>
@@ -221,8 +182,8 @@ use App\Helpers\UserHelper;
         <div class="col-12">
             <div class="card modern-card">
                 <div class="card-header">
-                    <h4><i class="fas fa-chart-bar text-info"></i> Répartition de Mes Heures par Dossier</h4>
-                    <small class="text-muted">Top 10 des dossiers (mois en cours)</small>
+                    <h4><i class="fas fa-chart-bar text-info"></i> Répartition de Mes Heures par Activité</h4>
+                    <small class="text-muted">Top 10 des activités (mois en cours)</small>
                 </div>
                 <div class="card-body">
                     <canvas id="chartHeuresParDossier" height="120"></canvas>
@@ -234,7 +195,7 @@ use App\Helpers\UserHelper;
     <!-- Mes dernières activités -->
     <div class="row">
         <!-- Mes daily entries récentes -->
-        <div class="col-lg-6 col-md-12">
+        <div class="col-lg-12 col-md-12">
             <div class="card modern-card">
                 <div class="card-header">
                     <h4><i class="fas fa-history text-primary"></i> Mes Dernières Saisies</h4>
@@ -258,23 +219,6 @@ use App\Helpers\UserHelper;
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mes congés à venir -->
-        <div class="col-lg-6 col-md-12">
-            <div class="card modern-card">
-                <div class="card-header">
-                    <h4><i class="fas fa-calendar-alt text-success"></i> Mes Congés à Venir</h4>
-                    <small class="text-muted">Prochains 30 jours</small>
-                </div>
-                <div class="card-body">
-                    <div id="conges-a-venir-list">
-                        <div class="text-center py-3">
-                            <i class="fas fa-spinner fa-spin"></i> Chargement...
-                        </div>
                     </div>
                 </div>
             </div>
@@ -473,31 +417,6 @@ use App\Helpers\UserHelper;
     color: white;
 }
 
-/* Congé item */
-.conge-item {
-    padding: 12px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-    border-left: 4px solid #6777ef;
-    transition: all 0.3s ease;
-}
-
-.conge-item:hover {
-    background-color: #e9ecef;
-    transform: translateX(5px);
-}
-
-.conge-type {
-    font-weight: 600;
-    color: #34395e;
-}
-
-.conge-dates {
-    font-size: 0.9rem;
-    color: #6c757d;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
     .border-right {
@@ -520,7 +439,7 @@ use App\Helpers\UserHelper;
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-let chartMesHeures, chartMesDossiers, chartMesConges, chartHeuresParDossier;
+let chartMesHeures, chartMesDossiers, chartHeuresParDossier;
 
 // Configuration Chart.js globale
 Chart.defaults.font.family = "'Nunito', sans-serif";
@@ -601,10 +520,8 @@ function loadDashboardData() {
             updateQuickStats(data);
             updateMesHeuresChart(data.last30days);
             updateMesDossiersChart(data.mesDossiersActifs);
-            updateMesCongesChart(data.mesCongesParType);
             updateHeuresParDossierChart(data.mesHeuresParDossier);
             updateDailyEntries(data.mesDailyEntries);
-            updateCongesAVenir(data.mesCongesAVenir);
             updateStatsTable(data);
         },
         error: function(xhr) {
@@ -633,11 +550,9 @@ function updatePersonalStats(data) {
     $('#mes-dossiers').text(totals.mes_dossiers);
     $('#mes-heures-mois').text(hoursToHoursMinutesShort(totals.heures_mois));
     $('#mes-heures-totales').text(hoursToHoursMinutesShort(totals.heures_totales));
-    $('#mes-conges').text(totals.mes_conges_en_cours);
     
     // Badges
     $('#dossiers-actifs-badge').text(totals.dossiers_actifs + ' actifs');
-    $('#conges-badge').text(totals.mes_conges_en_cours > 0 ? 'En cours' : 'Aucun');
     
     // Pourcentage d'évolution des heures
     updatePercentage('#heures-percent', percentages.heures);
@@ -651,7 +566,6 @@ function updateQuickStats(data) {
     // Afficher avec format heures/minutes
     $('#heures-semaine').html(hoursToHoursMinutesShort(weekly.heures));
     $('#dossiers-semaine').text(weekly.dossiers_travailles);
-    $('#conges-mois').text(monthly.conges);
     $('#dossiers-actifs').text(totals.dossiers_actifs);
 }
 
@@ -746,7 +660,7 @@ function updateMesDossiersChart(data) {
     if (chartMesDossiers) chartMesDossiers.destroy();
     
     if (!data.names || data.names.length === 0) {
-        $(ctx).parent().html('<div class="text-center py-4 text-muted"><i class="fas fa-inbox fa-3x mb-3"></i><p>Aucun dossier actif ce mois</p></div>');
+        $(ctx).parent().html('<div class="text-center py-4 text-muted"><i class="fas fa-inbox fa-3x mb-3"></i><p>Aucune activité active ce mois</p></div>');
         return;
     }
     
@@ -785,48 +699,6 @@ function updateMesDossiersChart(data) {
                     }
                 },
                 y: { grid: { display: false } }
-            }
-        }
-    });
-}
-
-function updateMesCongesChart(data) {
-    const ctx = document.getElementById('chartMesConges');
-    if (!ctx) return;
-    
-    if (chartMesConges) chartMesConges.destroy();
-    
-    if (!data.types || data.types.length === 0) {
-        $(ctx).parent().html('<div class="text-center py-4 text-muted"><i class="fas fa-calendar-times fa-3x mb-3"></i><p>Aucun congé cette année</p></div>');
-        return;
-    }
-    
-    const colors = ['#6777ef', '#ffa426', '#47c363', '#fc544b', '#3abaf4', '#e83e8c'];
-    
-    chartMesConges = new Chart(ctx.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: data.types,
-            datasets: [{
-                data: data.counts,
-                backgroundColor: colors.slice(0, data.types.length),
-                borderWidth: 3,
-                borderColor: '#fff'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 15, font: { size: 12 } }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => context.label + ': ' + context.parsed + ' congé(s)'
-                    }
-                }
             }
         }
     });
@@ -933,65 +805,6 @@ function updateDailyEntries(entries) {
     tbody.html(html);
 }
 
-function updateCongesAVenir(conges) {
-    const container = $('#conges-a-venir-list');
-    
-    if (!conges || conges.length === 0) {
-        container.html('<div class="text-center py-3 text-muted"><i class="fas fa-calendar-check fa-2x mb-2"></i><p>Aucun congé prévu</p></div>');
-        return;
-    }
-    
-    let html = '';
-    conges.forEach(conge => {
-        let typeIcon = 'fa-umbrella-beach';
-        let typeColor = '#6777ef';
-        
-        // Identifier le type basé sur le libellé
-        const typeUpper = (conge.type || '').toUpperCase();
-        
-        if (typeUpper.includes('MALADIE') || typeUpper.includes('SICK')) {
-            typeIcon = 'fa-medkit';
-            typeColor = '#fc544b';
-        } else if (typeUpper.includes('MATERNITÉ') || typeUpper.includes('MATERNITE') || typeUpper.includes('PATERNITÉ')) {
-            typeIcon = 'fa-baby';
-            typeColor = '#ffa426';
-        } else if (typeUpper.includes('PAYÉ') || typeUpper.includes('PAYE') || typeUpper.includes('RÉMUNÉRÉ')) {
-            typeIcon = 'fa-umbrella-beach';
-            typeColor = '#47c363';
-        } else if (typeUpper.includes('NON') && (typeUpper.includes('PAYÉ') || typeUpper.includes('PAYE'))) {
-            typeIcon = 'fa-plane-departure';
-            typeColor = '#95a5a6';
-        }
-        
-        // Afficher avec décimales si nécessaire
-        const joursValue = parseFloat(conge.jours);
-        const joursDisplay = joursValue % 1 === 0 
-            ? Math.floor(joursValue) 
-            : joursValue.toFixed(1);
-        
-        html += `
-            <div class="conge-item" style="border-left-color: ${typeColor}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="conge-type">
-                            <i class="fas ${typeIcon}" style="color: ${typeColor}"></i>
-                            ${conge.type}
-                        </div>
-                        <div class="conge-dates">
-                            <i class="fas fa-calendar"></i> ${conge.debut} - ${conge.fin}
-                        </div>
-                    </div>
-                    <div>
-                        <span class="badge badge-primary badge-pill">${joursDisplay} jour(s)</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.html(html);
-}
-
 function updateStatsTable(data) {
     const weekly = data.weekly;
     const monthly = data.monthly;
@@ -1007,7 +820,7 @@ function updateStatsTable(data) {
             percent: percentages.heures 
         },
         { 
-            name: 'Dossiers travaillés', 
+            name: 'Activités travaillées', 
             icon: 'fa-folder', 
             color: '#3abaf4', 
             week: weekly.dossiers_travailles, 
@@ -1015,12 +828,12 @@ function updateStatsTable(data) {
             percent: percentages.dossiers 
         },
         { 
-            name: 'Congés', 
-            icon: 'fa-umbrella-beach', 
+            name: 'Activités actives', 
+            icon: 'fa-briefcase', 
             color: '#ffa426', 
-            week: 0, 
-            month: monthly.conges, 
-            percent: '0' 
+            week: data.totals.dossiers_actifs, 
+            month: data.totals.dossiers_actifs, 
+            percent: percentages.dossiers_actifs 
         }
     ];
     

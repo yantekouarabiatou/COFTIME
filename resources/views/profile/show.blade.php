@@ -129,6 +129,26 @@
                             <span class="text-muted">Nom d'utilisateur</span>
                             <span class="font-weight-bold">{{ $user->username }}</span>
                         </div>
+
+                        {{-- 👇 Ajout supérieur hiérarchique --}}
+                        <div class="list-group-item d-flex justify-content-between px-3">
+                            <span class="text-muted">Supérieur hiérarchique</span>
+                            <span>
+                                @if($user->manager)
+                                    <a href="{{ route('users.show', $user->manager->id) }}" class="text-dark font-weight-bold">
+                                        <i class="fas fa-user-tie mr-1"></i>
+                                        {{ $user->manager->prenom }} {{ $user->manager->nom }}
+                                        @if($user->manager->roles->isNotEmpty())
+                                            <br>
+                                            <small class="text-muted">{{ $user->manager->roles->first()->name }}</small>
+                                        @endif
+                                    </a>
+                                @else
+                                    <span class="text-muted font-italic">Non défini</span>
+                                @endif
+                            </span>
+                        </div>
+
                         <div class="list-group-item d-flex justify-content-between px-3">
                             <span class="text-muted">Créé le</span>
                             <span>{{ $user->created_at->format('d/m/Y à H:i') }}</span>
@@ -256,19 +276,6 @@
                         </div>
                     </div>
 
-                    <!-- Congés pris -->
-                    <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
-                        <div class="card card-statistic-2">
-                            <div class="card-icon bg-warning">
-                                <i class="fas fa-umbrella-beach"></i>
-                            </div>
-                            <div class="card-wrap">
-                                <div class="card-header"><h6>Congés pris</h6></div>
-                                <div class="card-body h4">{{ $statistiques['conges_pris'] }} jours</div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Total saisies -->
                     <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
                         <div class="card card-statistic-2">
@@ -294,19 +301,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Congés en attente -->
-                    <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
-                        <div class="card card-statistic-2">
-                            <div class="card-icon bg-danger">
-                                <i class="fas fa-clipboard-list"></i>
-                            </div>
-                            <div class="card-wrap">
-                                <div class="card-header"><h6>Congés en attente</h6></div>
-                                <div class="card-body h4">{{ $statistiques['conges_en_attente'] }}</div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Activités récentes -->
@@ -326,12 +320,6 @@
                                 <a class="nav-link" id="time-tab" data-toggle="tab" href="#time" role="tab">
                                     <i class="fas fa-clock mr-1"></i> Saisies temps
                                     <span class="badge badge-info ml-2">{{ $user->timeEntries->count() }}</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" id="conges-tab" data-toggle="tab" href="#conges" role="tab">
-                                    <i class="fas fa-umbrella-beach mr-1"></i> Congés
-                                    <span class="badge badge-warning ml-2">{{ $user->conges->count() }}</span>
                                 </a>
                             </li>
                         </ul>
@@ -437,52 +425,6 @@
                                     <div class="text-center text-muted py-4">
                                         <i class="fas fa-clock fa-3x mb-3"></i>
                                         <p>Aucune saisie de temps enregistrée</p>
-                                    </div>
-                                @endif
-                            </div>
-
-                            <!-- Onglet Congés -->
-                            <div class="tab-pane fade" id="conges" role="tabpanel">
-                                @if($user->conges->count() > 0)
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover">
-                                            <thead>
-                                                <tr>
-                                                    <th>Type</th>
-                                                    <th>Date début</th>
-                                                    <th>Date fin</th>
-                                                    <th>Nombre de jours</th>
-                                                    <th>Statut</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($user->conges as $conge)
-                                                    <tr>
-                                                        <td>{{ ucfirst($conge->typeConge->libelle) }}</td>
-                                                        <td>{{ $conge->date_debut->format('d/m/Y') }}</td>
-                                                        <td>{{ $conge->date_fin->format('d/m/Y') }}</td>
-                                                        <td><strong>{{ $conge->nombre_jours }}</strong></td>
-                                                        <td>
-                                                            <span class="badge badge-{{ $conge->statut == 'approuvé' ? 'success' : ($conge->statut == 'en_attente' ? 'warning' : 'success') }}">
-                                                                {{ ucfirst($conge->statut) }}
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <a href="{{ route('conges.show', $conge->id) }}"
-                                                               class="btn btn-sm btn-info" title="Voir détails">
-                                                                <i class="fas fa-eye"></i>
-                                                            </a>
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @else
-                                    <div class="text-center text-muted py-4">
-                                        <i class="fas fa-umbrella-beach fa-3x mb-3"></i>
-                                        <p>Aucun congé enregistré</p>
                                     </div>
                                 @endif
                             </div>

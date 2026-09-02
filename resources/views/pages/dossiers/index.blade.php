@@ -1,13 +1,13 @@
 @extends('layaout')
 
-@section('title', 'Gestion des Dossiers')
+@section('title', 'Gestion des Activités')
 
 @section('content')
     <section class="section">
         <div class="section-header">
-            <h1><i class="fas fa-folder"></i> Gestion des Dossiers</h1>
+            <h1><i class="fas fa-folder"></i> Gestion des Activités</h1>
             <div class="section-header-breadcrumb">
-                <div class="breadcrumb-item active">Dossiers</div>
+                <div class="breadcrumb-item active">Activités</div>
             </div>
         </div>
 
@@ -16,7 +16,7 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            <h4>Tous les Dossiers</h4>
+                            <h4>Tous les Activités</h4>
                             {{-- Bouton de synchronisation --}}
                             <form action="{{ route('admin.missions.import') }}" method="POST" id="syncForm">
                                 @csrf
@@ -27,7 +27,7 @@
                             
                             <div class="card-header-action">
                                 <a href="{{ route('dossiers.create') }}" class="btn btn-icon icon-left btn-primary">
-                                    <i class="fas fa-plus"></i> Nouveau Dossier
+                                    <i class="fas fa-plus"></i> Nouvelle Activité
                                 </a>
 
                                 <!-- Bouton Export (à activer plus tard si tu ajoutes DataTables Buttons) -->
@@ -124,7 +124,7 @@
                         </div>
                         <div class="card-wrap">
                             <div class="card-header">
-                                <h4>Total Dossiers</h4>
+                                <h4>Total Activités</h4>
                             </div>
                             <div class="card-body">{{ $totalDossiers }}</div>
                         </div>
@@ -262,7 +262,7 @@
 
             Swal.fire({
                 title: 'Êtes-vous sûr ?',
-                text: "Cette action supprimera définitivement le dossier !",
+                text: "Cette action supprimera définitivement l'activité !",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -297,7 +297,7 @@
                     Swal.fire({
                         icon: 'success',
                         title: 'Supprimé !',
-                        text: 'Le dossier a été supprimé avec succès.',
+                        text: 'L\'activité a été supprimée avec succès.',
                         timer: 2000,
                         showConfirmButton: false
                     }).then(() => {

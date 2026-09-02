@@ -23,56 +23,53 @@ class DailyEntryController extends Controller
 
     /**
      * Afficher la liste des feuilles de temps
-     */ public function index(Request $request)
+     */ 
+    public function index(Request $request)
     {
         $user  = auth()->user();
         $query = DailyEntry::with(['user', 'timeEntries.dossier.client']);
 
-        // Filtre mois en cours par défaut
         $mois = $request->filled('mois')
             ? Carbon::parse($request->mois . '-01')
             : Carbon::now()->startOfMonth();
 
         $query->whereBetween('jour', [
             $mois->copy()->startOfMonth(),
-            $mois->copy()->endOfMonth()
+            $mois->copy()->endOfMonth(),
         ]);
 
-        if (!$user->hasRole('admin')) {
-            // L'utilisateur voit ses propres entrées
-            // + celles des collaborateurs du même poste
-            $memePosteIds = User::where('poste_id', $user->poste_id)
-                ->where('id', '!=', $user->id)
-                ->where('is_active', 1)
-                ->pluck('id');
-
-            $query->where(function ($q) use ($user, $memePosteIds) {
+        if ($user->hasRole('directeur-general')) {
+            // Voit tout, aucun filtre
+        } elseif ($user->hasRole('manager')) {
+            $subordinateIds = $user->subordinates()->pluck('id')->toArray();
+            $query->where(function ($q) use ($user, $subordinateIds) {
                 $q->where('user_id', $user->id)
-                    ->orWhereIn('user_id', $memePosteIds);
+                ->orWhereIn('user_id', $subordinateIds);
             });
+        } else {
+            // Tout le monde : uniquement ses propres feuilles
+            $query->where('user_id', $user->id);
         }
-
-
-        // ── Filtres server-side ──────────────────────────────────────────────
 
         if ($request->filled('statut')) {
             $query->where('statut', $request->statut);
         }
 
-        if ($request->filled('user') && $user->hasRole(['admin', 'responsable', 'directeur-general'])) {
-            $query->where('user_id', $request->user);
+        if ($request->filled('user')) {
+            $requestedId = (int) $request->user;
+            // Vérifier que l'utilisateur a le droit de filtrer sur cet ID
+            $canFilter = $user->hasRole('directeur-general')
+                || ($user->hasRole('manager') && $user->isManagerOf($requestedId));
+
+            if ($canFilter) {
+                $query->where('user_id', $requestedId);
+            }
         }
 
         if ($request->filled('date')) {
             $query->whereDate('jour', $request->date);
         }
 
-        if ($request->filled('pending') && $user->hasRole('directeur-general')) {
-            $query->where('statut', 'soumis')
-                ->where('user_id', '!=', $user->id);
-        }
-
-        // ── Statistiques calculées sur la même query filtrée ────────────────
         $statsQuery     = clone $query;
         $totalHours     = (clone $statsQuery)->sum('heures_reelles');
         $submittedCount = (clone $statsQuery)->where('statut', 'soumis')->count();
@@ -81,21 +78,17 @@ class DailyEntryController extends Controller
 
         $dailyEntries = $query->latest()->paginate(20)->withQueryString();
 
-        // Liste des collaborateurs pour le select (rôles autorisés uniquement)
+        // Liste collaborateurs pour le filtre select
         $users = collect();
-        if ($user->hasRole(['admin', 'manager', 'directeur-general'])) {
-            $users = User::where('is_active', 1)
-                ->orderBy('prenom')
-                ->get(['id', 'prenom', 'nom']);
+        if ($user->hasRole('directeur-general')) {
+            $users = User::where('is_active', 1)->orderBy('prenom')->get(['id', 'prenom', 'nom']);
+        } elseif ($user->hasRole('manager')) {
+            $users = $user->subordinates()->where('is_active', 1)->orderBy('prenom')->get(['id', 'prenom', 'nom']);
         }
 
         return view('pages.daily-entries.index', compact(
-            'dailyEntries',
-            'totalHours',
-            'submittedCount',
-            'validatedCount',
-            'rejectedCount',
-            'users'
+            'dailyEntries', 'totalHours', 'submittedCount',
+            'validatedCount', 'rejectedCount', 'users', 'mois'
         ));
     }
 
@@ -203,6 +196,7 @@ class DailyEntryController extends Controller
 
     public function show(DailyEntry $dailyEntry)
     {
+        $this->authorizeView($dailyEntry);
         $dailyEntry->load(['user.poste', 'timeEntries.dossier.client']);
         return view('pages.daily-entries.show', compact('dailyEntry'));
     }
@@ -352,6 +346,7 @@ class DailyEntryController extends Controller
 
     public function destroy(DailyEntry $dailyEntry)
     {
+        $this->authorizeDestroy($dailyEntry);
         $dailyEntry->timeEntries()->delete();
         $dailyEntry->delete();
         Alert::success('Succès', 'Feuille de temps supprimée avec succès.');
@@ -452,6 +447,16 @@ class DailyEntryController extends Controller
         ]);
 
         $reference = 'DOS-' . strtoupper(substr($validated['nom'], 0, 3)) . '-' . date('Ymd-His');
+        // Ajouter le créateur
+        if (empty($validated['client_id'])) {
+            $clientDefaut = Client::where('nom', 'Coftime')->first();
+
+            if (!$clientDefaut) {
+                return back()->withInput()->with('error', 'Client Coftime introuvable en base.');
+            }
+
+            $validated['client_id'] = $clientDefaut->id;
+        }
 
         $dossier = Dossier::create([
             'nom'          => $validated['nom'],
@@ -460,6 +465,7 @@ class DailyEntryController extends Controller
             'type_dossier' => $validated['type_dossier'] ?? 'autre',
             'statut'       => $validated['statut'] ?? 'ouvert',
             'description'  => $validated['description'] ?? null,
+            'created_by'   => auth()->id(),
             'date_ouverture' => now(),
         ]);
 
@@ -571,16 +577,53 @@ class DailyEntryController extends Controller
     private function authorizeEdit(DailyEntry $entry): void
     {
         $user = auth()->user();
-        if ($entry->user_id !== $user->id && !$this->canValidate($entry)) {
-            abort(403, 'Accès non autorisé.');
+
+        if ($user->hasRole('directeur-general')) return;
+
+        // Propriétaire uniquement (le manager ne modifie pas la feuille de quelqu'un d'autre)
+        if ($entry->user_id !== $user->id) {
+            abort(403, 'Seul le propriétaire peut modifier sa feuille de temps.');
         }
     }
 
     private function canValidate(DailyEntry $entry): bool
     {
         $user = auth()->user();
-        if ($user->hasRole(['admin', 'super-admin'])) return true;
-        return $user->isManagerOf($entry->user_id);
+
+        // Ne peut pas valider sa propre feuille
+        if ($entry->user_id === $user->id) return false;
+
+        if ($user->hasRole('directeur-general')) return true;
+
+        return $user->hasRole('manager') && $user->isManagerOf($entry->user_id);
+    }
+
+    private function authorizeView(DailyEntry $entry): void
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('directeur-general')) return;
+
+        $canSee = $entry->user_id === $user->id
+            || ($user->hasRole('manager') && $user->isManagerOf($entry->user_id));
+
+        if (!$canSee) {
+            abort(403, 'Vous n\'avez pas accès à cette feuille de temps.');
+        }
+    }
+
+    private function authorizeDestroy(DailyEntry $entry): void
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('directeur-general')) return;
+
+        $canDelete = $entry->user_id === $user->id
+            || ($user->hasRole('manager') && $user->isManagerOf($entry->user_id));
+
+        if (!$canDelete) {
+            abort(403, 'Vous n\'avez pas le droit de supprimer cette feuille.');
+        }
     }
 
     private function ensureCanManage(DailyEntry $entry): void
@@ -677,4 +720,5 @@ class DailyEntryController extends Controller
 
         return response()->json(['success' => true, 'message' => "{$count} feuille(s) validée(s) pour {$request->mois}."]);
     }
+
 }

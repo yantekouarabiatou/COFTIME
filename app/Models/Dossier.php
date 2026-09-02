@@ -28,7 +28,8 @@ class Dossier extends Model
         'budget',
         'frais_dossier',
         'document',
-        'notes'
+        'notes',
+        'created_by',
     ];
 
     protected $casts = [

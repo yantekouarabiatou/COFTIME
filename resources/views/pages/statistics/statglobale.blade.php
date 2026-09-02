@@ -147,34 +147,6 @@ use App\Helpers\UserHelper;
                 </div>
             </div>
 
-            {{-- Congés --}}
-            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mt-4">
-                <div class="card card-statistic border-0 shadow-lg hover-lift h-100 position-relative overflow-hidden">
-                    <div class="card-icon-bg position-absolute top-0 end-0 opacity-10">
-                        <i class="fas fa-umbrella-beach fa-4x"></i>
-                    </div>
-                    <div class="card-body pt-4 pb-4 px-4">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="icon-wrapper rounded-circle bg-gradient-warning p-3 me-3">
-                                <i class="fas fa-umbrella-beach fa-lg text-white"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <h5 class="card-title text-muted mb-1 fw-normal">Congés</h5>
-                                <h2 id="stat-conges" class="mb-0 fw-bold">
-                                    <i class="fas fa-spinner fa-spin"></i>
-                                </h2>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <span class="badge bg-light text-dark px-3 py-1 rounded-pill">
-                                <i class="fas fa-running me-1"></i>
-                                <span id="stat-conges-cours">--</span> en cours
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {{-- Clients --}}
             <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 mt-4">
                 <div class="card card-statistic border-0 shadow-lg hover-lift h-100 position-relative overflow-hidden">
@@ -345,24 +317,6 @@ use App\Helpers\UserHelper;
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="card modern-card">
-                    <div class="card-header">
-                        <h4><i class="fas fa-chart-pie text-warning"></i> Congés — Répartition</h4>
-                        <small class="text-muted">Par type et statut</small>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <canvas id="chartCongesTypes" height="200"></canvas>
-                            </div>
-                            <div class="col-md-6">
-                                <canvas id="chartCongesStatuts" height="200"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         {{-- ===== TAUX DE VALIDATION ===== --}}
@@ -374,42 +328,6 @@ use App\Helpers\UserHelper;
                 </div>
                 <div class="card-body">
                     <canvas id="chartValidation" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-
-        {{-- ===== SOLDES CONGÉS ===== --}}
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="card modern-card">
-                    <div class="card-header">
-                        <h4><i class="fas fa-balance-scale text-info"></i> Top 10 Soldes de Congés</h4>
-                        <small class="text-muted">Jours restants pour l'année en cours</small>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th width="50">#</th>
-                                        <th>Employé</th>
-                                        <th class="text-center">Jours acquis</th>
-                                        <th class="text-center">Jours pris</th>
-                                        <th class="text-center">Jours restants</th>
-                                        <th class="text-center">Jours reportés</th>
-                                        <th class="text-center">Taux d'utilisation</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="soldes-conges">
-                                    <tr>
-                                        <td colspan="7" class="text-center py-4">
-                                            <i class="fas fa-spinner fa-spin"></i> Chargement...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -763,14 +681,11 @@ function loadStats() {
 
             updateGlobalStats(stats.totaux, periode);
             updateClassementHeures(stats.classement_employes);
-            updateClassementConges(stats.classement_conges);
             updateChartEvolution(stats.evolution_heures);
             updateChartDossiers(stats.repartition_dossiers);
-            updateChartConges(stats.statistiques_conges);
             updateChartMensuel(stats.performance_mensuelle);
             updateChartValidation(stats.taux_validation);
             updateChartJoursSemaine(stats.heures_par_jour_semaine);
-            updateSoldesConges(stats.soldes_conges);
             updateChartActivitesHeure(stats.activites_par_heure);
         },
         error: function (xhr) {
@@ -800,10 +715,6 @@ function updateGlobalStats(totaux, periode) {
     } else {
         $('#stat-moyenne').text('—');
     }
-
-    // Congés
-    $('#stat-conges').text(totaux.total_conges);
-    $('#stat-conges-cours').text(totaux.conges_en_cours);
 
     // Clients
     $('#stat-clients').text(totaux.total_clients);
@@ -846,58 +757,6 @@ function updateClassementHeures(data) {
                 <td class="text-center"><strong class="text-primary">${emp.total_heures}h</strong></td>
                 <td class="text-center"><small class="text-muted">${emp.moyenne_jour}h/j</small></td>
                 <td class="text-center"><span class="badge badge-info">${emp.nombre_dossiers}</span></td>
-            </tr>`;
-    });
-    tbody.html(html);
-}
-
-// ===== CLASSEMENT CONGÉS =====
-function updateClassementConges(data) {
-    const tbody = $('#classement-conges');
-    if (!data || !data.length) {
-        tbody.html('<tr><td colspan="5" class="text-center py-3 text-muted">Aucune donnée</td></tr>');
-        return;
-    }
-    let html = '';
-    data.forEach(emp => {
-        const badgeClass = emp.rang === 1 ? 'badge-rang-1' : emp.rang === 2 ? 'badge-rang-2' : emp.rang === 3 ? 'badge-rang-3' : '';
-        html += `
-            <tr onclick="viewEmployeDetails(${emp.id})" style="cursor:pointer;">
-                <td><span class="badge badge-pill ${badgeClass}">${emp.rang}</span></td>
-                <td><strong>${emp.nom_complet}</strong><br><small class="text-muted">${emp.email}</small></td>
-                <td class="text-center"><strong class="text-warning">${emp.nombre_conges}</strong></td>
-                <td class="text-center"><span class="badge badge-success">${emp.jours_approuves}j</span></td>
-                <td class="text-center"><span class="badge badge-warning">${emp.total_jours}j</span></td>
-            </tr>`;
-    });
-    tbody.html(html);
-}
-
-// ===== SOLDES CONGÉS =====
-function updateSoldesConges(data) {
-    const tbody = $('#soldes-conges');
-    if (!data.employes || !data.employes.length) {
-        tbody.html('<tr><td colspan="7" class="text-center py-3 text-muted">Aucune donnée</td></tr>');
-        return;
-    }
-    let html = '';
-    data.employes.forEach((emp, i) => {
-        const badgeClass = i === 0 ? 'badge-rang-1' : i === 1 ? 'badge-rang-2' : i === 2 ? 'badge-rang-3' : '';
-        const color = emp.pourcentage_pris > 80 ? 'danger' : emp.pourcentage_pris > 50 ? 'warning' : 'success';
-        html += `
-            <tr>
-                <td><span class="badge badge-pill ${badgeClass}">${i + 1}</span></td>
-                <td><strong>${emp.nom_complet}</strong></td>
-                <td class="text-center"><strong class="text-info">${emp.jours_acquis}</strong></td>
-                <td class="text-center"><strong class="text-warning">${emp.jours_pris}</strong></td>
-                <td class="text-center"><strong class="text-success">${emp.jours_restants}</strong></td>
-                <td class="text-center"><span class="badge badge-secondary">${emp.jours_reportes}</span></td>
-                <td>
-                    <div class="progress-taux position-relative">
-                        <div class="progress-taux-bar bg-${color}" style="width:${emp.pourcentage_pris}%"></div>
-                        <div class="progress-taux-text">${emp.pourcentage_pris}%</div>
-                    </div>
-                </td>
             </tr>`;
     });
     tbody.html(html);
@@ -959,26 +818,6 @@ function updateChartDossiers(data) {
     });
 }
 
-function updateChartConges(data) {
-    destroyChart('chartCongesTypes');
-    destroyChart('chartCongesStatuts');
-    const colors = ['#6777ef','#ffa426','#47c363','#fc544b','#3abaf4','#f3545d'];
-    charts.CongesTypes = new Chart(document.getElementById('chartCongesTypes'), {
-        type: 'doughnut',
-        data: { labels: data.types.labels, datasets: [{ data: data.types.counts, backgroundColor: colors, borderWidth: 3, borderColor: '#fff' }] },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Par type' } } }
-    });
-    const colorStatuts = { 'En_attente': '#3abaf4', 'Approuve': '#47c363', 'Refuse': '#fc544b', 'Annule': '#95a5a6' };
-    charts.CongesStatuts = new Chart(document.getElementById('chartCongesStatuts'), {
-        type: 'pie',
-        data: {
-            labels: data.statuts.labels,
-            datasets: [{ data: data.statuts.counts, backgroundColor: data.statuts.labels.map(l => colorStatuts[l.replace(' ','_')] || '#95a5a6'), borderWidth: 3, borderColor: '#fff' }]
-        },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Par statut' } } }
-    });
-}
-
 function updateChartMensuel(data) {
     destroyChart('chartMensuel');
     if (!document.getElementById('chartMensuel')) return;
@@ -988,7 +827,7 @@ function updateChartMensuel(data) {
             labels: data.labels,
             datasets: [
                 { label: 'Heures travaillées', data: data.heures, backgroundColor: '#3abaf4', borderRadius: 6, yAxisID: 'y' },
-                { label: 'Jours de congés', data: data.jours_conges, backgroundColor: '#ffa426', borderRadius: 6, yAxisID: 'y1' }
+                { label: 'Jours travaillés', data: data.jours, backgroundColor: '#47c363', borderRadius: 6, yAxisID: 'y1' }
             ]
         },
         options: {
@@ -1084,19 +923,6 @@ function viewEmployeDetails(userId) {
                         <div class="row mb-3">
                             <div class="col-6"><div class="card bg-light"><div class="card-body text-center"><h4 class="text-success">${data.dossiers.total}</h4><small>Total</small></div></div></div>
                             <div class="col-6"><div class="card bg-light"><div class="card-body text-center"><h4 class="text-warning">${data.dossiers.actifs}</h4><small>Actifs</small></div></div></div>
-                        </div>
-                        <h6><i class="fas fa-umbrella-beach text-warning"></i> Congés</h6>
-                        <div class="row mb-3">
-                            <div class="col-4"><div class="card bg-light"><div class="card-body text-center"><h4 class="text-warning">${data.conges.total_demandes}</h4><small>Demandes</small></div></div></div>
-                            <div class="col-4"><div class="card bg-light"><div class="card-body text-center"><h4 class="text-danger">${data.conges.jours_pris}j</h4><small>Jours pris</small></div></div></div>
-                            <div class="col-4"><div class="card bg-light"><div class="card-body text-center"><h4 class="${data.conges.en_attente > 0 ? 'text-warning' : 'text-muted'}">${data.conges.en_attente}</h4><small>En attente</small></div></div></div>
-                        </div>
-                        <h6><i class="fas fa-balance-scale text-info"></i> Solde congés</h6>
-                        <div class="row">
-                            <div class="col-3"><div class="card bg-light"><div class="card-body text-center"><h4 class="text-info">${data.conges.jours_acquis}</h4><small>Acquis</small></div></div></div>
-                            <div class="col-3"><div class="card bg-light"><div class="card-body text-center"><h4 class="text-warning">${data.conges.jours_pris}</h4><small>Pris</small></div></div></div>
-                            <div class="col-3"><div class="card bg-light"><div class="card-body text-center"><h4 class="text-success">${data.conges.jours_restants}</h4><small>Restants</small></div></div></div>
-                            <div class="col-3"><div class="card bg-light"><div class="card-body text-center"><h4 class="text-secondary">${data.conges.jours_reportes}</h4><small>Reportés</small></div></div></div>
                         </div>
                     </div>`,
                 width: 700,

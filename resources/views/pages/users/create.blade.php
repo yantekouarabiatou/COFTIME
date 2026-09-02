@@ -1,6 +1,6 @@
 @extends('layaout')
 
-@section('title', 'Nouvelle Utilisa')
+@section('title', 'Nouvel Utilisateur')
 
 @section('content')
     <section class="section">
@@ -215,6 +215,29 @@
                                                 <option value="1" selected>Actif</option>
                                                 <option value="0">Inactif</option>
                                             </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Supérieur hiérarchique</label>
+                                            <select name="superieur_id" class="form-control select2 @error('superieur_id') is-invalid @enderror">
+                                                <option value="">-- Aucun supérieur --</option>
+                                                @foreach($managers as $manager)
+                                                    <option value="{{ $manager->id }}" {{ old('superieur_id') == $manager->id ? 'selected' : '' }}>
+                                                        {{ $manager->nom }} {{ $manager->prenom }}
+                                                        @if($manager->roles->isNotEmpty())
+                                                            — {{ $manager->roles->first()->name }}
+                                                        @endif
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error('superieur_id')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="text-muted">
+                                                <i class="fas fa-sitemap"></i> Responsable direct de cet utilisateur
+                                            </small>
                                         </div>
                                     </div>
                                 </div>

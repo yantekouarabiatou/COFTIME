@@ -238,6 +238,31 @@
                                             @enderror
                                         </div>
                                     </div>
+
+                                    {{-- Supérieur hiérarchique --}}
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Supérieur hiérarchique</label>
+                                            <select name="manager_id" class="form-control select2 @error('manager_id') is-invalid @enderror">
+                                                <option value="">-- Aucun supérieur --</option>
+                                                @foreach($managers as $manager)
+                                                    <option value="{{ $manager->id }}"
+                                                        {{ old('manager_id', $user->manager_id) == $manager->id ? 'selected' : '' }}>
+                                                        {{ $manager->nom }} {{ $manager->prenom }}
+                                                        @if($manager->roles->isNotEmpty())
+                                                            — {{ $manager->roles->first()->name }}
+                                                        @endif
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            @error('manager_id')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
+                                            <small class="text-muted">
+                                                <i class="fas fa-sitemap"></i> Responsable direct de cet utilisateur
+                                            </small>
+                                        </div>
+                                    </div>
                                 </div>
 
 
