@@ -214,10 +214,23 @@ use App\Models\User;
                                                 @endif
                                             </td>
                                             <td class="text-center align-middle">
-                                                <a href="{{ route('missions.utilisateur.dossier', ['user' => $personnel->id, 'dossier' => $dossier->id]) }}"
-                                                   class="btn btn-sm btn-outline-primary" title="Détails">
-                                                    <i class="fas fa-chart-pie"></i>
-                                                </a>
+                                                @php
+                                                    $authUser     = auth()->user();
+                                                    $canSeeDetail = $authUser->hasRole('directeur-general')
+                                                        || $authUser->id === $personnel->id
+                                                        || ($authUser->hasRole('manager') && $authUser->isManagerOf($personnel->id));
+                                                @endphp
+
+                                                @if($canSeeDetail)
+                                                    <a href="{{ route('missions.utilisateur.dossier', ['user' => $personnel->id, 'dossier' => $dossier->id]) }}"
+                                                    class="btn btn-sm btn-outline-primary" title="Détails">
+                                                        <i class="fas fa-chart-pie"></i>
+                                                    </a>
+                                                @else
+                                                    <span class="btn btn-sm btn-outline-secondary disabled" title="Accès non autorisé">
+                                                        <i class="fas fa-chart-pie"></i>
+                                                    </span>
+                                                @endif
                                             </td>
                                         </tr>
                                     @empty
@@ -451,12 +464,29 @@ use App\Models\User;
                                                     <div class="font-weight-bold">{{ $collaborateur->prenom }} {{ $collaborateur->nom }}</div>
                                                     <small class="text-muted">{{ $collaborateur->poste->intitule ?? 'Non défini' }}</small>
                                                 </div>
+                                               @php
+                                                    $authUser        = auth()->user();
+                                                    $canSeeProfile   = $authUser->hasRole('directeur-general')
+                                                        || $authUser->id === $collaborateur->id
+                                                        || ($authUser->hasRole('manager') && $authUser->isManagerOf($collaborateur->id));
+
+                                                    $canRemove       = $authUser->hasRole('directeur-general')
+                                                        || $authUser->id === $dossier->created_by;
+                                                @endphp
+
                                                 <div class="btn-group">
-                                                    <a href="{{ route('user-profile.show', $collaborateur->id) }}"
-                                                       class="btn btn-sm btn-outline-info" title="Voir profil">
-                                                        <i class="fas fa-eye"></i>
-                                                    </a>
-                                                    @if(auth()->user()->id == $dossier->created_by || auth()->user()->hasRole(['admin', 'super-admin']))
+                                                    @if($canSeeProfile)
+                                                        <a href="{{ route('user-profile.show', $collaborateur->id) }}"
+                                                        class="btn btn-sm btn-outline-info" title="Voir profil">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                    @else
+                                                        <span class="btn btn-sm btn-outline-secondary disabled" title="Accès non autorisé">
+                                                            <i class="fas fa-eye"></i>
+                                                        </span>
+                                                    @endif
+
+                                                    @if($canRemove)
                                                         <button type="button"
                                                                 class="btn btn-sm btn-outline-danger remove-collaborateur"
                                                                 data-user-id="{{ $collaborateur->id }}"
@@ -540,10 +570,10 @@ use App\Models\User;
                                class="btn btn-outline-primary btn-block text-left">
                                 <i class="fas fa-plus-circle mr-2"></i> Nouvelle feuille de temps
                             </a>
-                            <a href="{{ route('missions.analyse.show', $dossier->id) }}"
+                            <!-- <a href="{{ route('missions.analyse.show', $dossier->id) }}"
                                class="btn btn-outline-info btn-block text-left">
                                 <i class="fas fa-chart-bar mr-2"></i> Analyse des performances
-                            </a>
+                            </a> -->
                             <a href="{{ route('dossiers.edit', $dossier) }}"
                                class="btn btn-outline-warning btn-block text-left">
                                 <i class="fas fa-edit mr-2"></i> Modifier l'activité

@@ -225,26 +225,29 @@
                                     <tbody>
                                         @foreach($dailyEntries as $entry)
                                             @php
-                                                $isMine      = $entry->user_id === auth()->id();
-                                                $isSamePoste = !$isMine
-                                                    && $entry->user->poste_id
-                                                    && $entry->user->poste_id === auth()->user()->poste_id;
-                                                $canManage   = $canBulk && !$isMine;
+                                                $authUser    = auth()->user();
+                                                $isMine      = $entry->user_id === $authUser->id;
+                                                $isDG        = $authUser->hasRole('directeur-general');
+                                                $isManager   = $authUser->hasRole('manager') && $authUser->isManagerOf($entry->user_id);
                                                 $isSubmitted = $entry->statut === 'soumis';
+
+                                                $canManage   = ($isDG || $isManager) && !$isMine;
+                                                $canDelete   = $isMine || $canManage;
+                                                $canBulkRow  = $canBulk && $canManage;
                                             @endphp
                                             <tr class="{{ $isSamePoste ? 'table-light' : '' }}"
                                                 data-id="{{ $entry->id }}"
                                                 data-statut="{{ $entry->statut }}">
 
                                                 {{-- Checkbox sélection (uniquement si gestionnaire et pas sa propre feuille) --}}
+                                                {{-- Checkbox --}}
                                                 @if($canBulk)
                                                 <td class="text-center">
                                                     @if($canManage && in_array($entry->statut, ['soumis', 'refusé']))
-                                                        <input type="checkbox"
-                                                               class="entry-checkbox"
-                                                               value="{{ $entry->id }}"
-                                                               data-statut="{{ $entry->statut }}"
-                                                               style="width:16px;height:16px;cursor:pointer;">
+                                                        <input type="checkbox" class="entry-checkbox"
+                                                            value="{{ $entry->id }}"
+                                                            data-statut="{{ $entry->statut }}"
+                                                            style="width:16px;height:16px;cursor:pointer;">
                                                     @endif
                                                 </td>
                                                 @endif
@@ -372,41 +375,45 @@
                                                     </small>
                                                 </td>
 
-                                                {{-- ─── Actions par ligne ────────────────────── --}}
+                                                {{-- Actions --}}
                                                 <td class="text-center">
                                                     <div class="btn-group btn-group-sm" role="group">
 
                                                         {{-- Voir --}}
-                                                        <a href="{{ route('daily-entries.show', $entry) }}"
-                                                           class="btn btn-info" title="Voir le détail">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
+                                                        @if($isMine || $canManage)
+                                                            <a href="{{ route('daily-entries.show', $entry) }}"
+                                                            class="btn btn-info" title="Voir le détail">
+                                                                <i class="fas fa-eye"></i>
+                                                            </a>
+                                                        @else
+                                                            <span class="btn btn-secondary disabled" title="Accès non autorisé">
+                                                                <i class="fas fa-eye"></i>
+                                                            </span>
+                                                        @endif
 
-                                                        {{-- Modifier (propriétaire + soumis) --}}
+                                                        {{-- Modifier : propriétaire uniquement, feuille soumise --}}
                                                         @if($isMine && $isSubmitted)
                                                             <a href="{{ route('daily-entries.edit', $entry) }}"
-                                                               class="btn btn-warning" title="Modifier">
+                                                            class="btn btn-warning" title="Modifier">
                                                                 <i class="fas fa-edit"></i>
                                                             </a>
                                                         @endif
 
-                                                        {{-- Valider (gestionnaire + pas soi-même + soumis) --}}
+                                                        {{-- Valider : manager direct ou DG, jamais sur soi-même --}}
                                                         @if($canManage && $isSubmitted)
-                                                            <button type="button"
-                                                                    class="btn btn-success validate-btn"
+                                                            <button type="button" class="btn btn-success validate-btn"
                                                                     data-url="{{ route('daily-entries.validate', $entry) }}"
                                                                     data-id="{{ $entry->id }}"
                                                                     data-name="{{ $entry->user->prenom }} {{ $entry->user->nom }}"
                                                                     data-date="{{ $entry->jour->format('d/m/Y') }}"
-                                                                    title="Valider cette feuille">
+                                                                    title="Valider">
                                                                 <i class="fas fa-check"></i>
                                                             </button>
                                                         @endif
 
-                                                        {{-- Refuser (gestionnaire + pas soi-même + soumis ou déjà refusé) --}}
+                                                        {{-- Refuser : manager direct ou DG, jamais sur soi-même --}}
                                                         @if($canManage && in_array($entry->statut, ['soumis', 'refusé']))
-                                                            <button type="button"
-                                                                    class="btn btn-danger reject-btn"
+                                                            <button type="button" class="btn btn-danger reject-btn"
                                                                     data-url="{{ route('daily-entries.reject', $entry) }}"
                                                                     data-id="{{ $entry->id }}"
                                                                     data-name="{{ $entry->user->prenom }} {{ $entry->user->nom }}"
@@ -417,10 +424,9 @@
                                                             </button>
                                                         @endif
 
-                                                        {{-- Supprimer --}}
-                                                        @if($isMine || auth()->user()->hasRole(['manager', 'admin']))
-                                                            <button type="button"
-                                                                    class="btn btn-outline-danger delete-btn"
+                                                        {{-- Supprimer : propriétaire, manager direct, ou DG --}}
+                                                        @if($canDelete)
+                                                            <button type="button" class="btn btn-outline-danger delete-btn"
                                                                     data-url="{{ route('daily-entries.destroy', $entry) }}"
                                                                     data-id="{{ $entry->id }}"
                                                                     data-name="{{ $entry->user->prenom }} {{ $entry->user->nom }}"

@@ -8,11 +8,8 @@
     <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
     <title>@yield('title', 'COFIMA - Admin Tableau de bord')</title>
 
-    {{-- Favicon avec le logo COFIMA --}}
-    @if(file_exists(storage_path('app/public/company/logo_cofima_bon.jpg')))
-        <link rel="icon" href="{{ Storage::url('company/logo_cofima_bon.jpg') }}" type="image/jpeg">
-        <link rel="apple-touch-icon" href="{{ Storage::url('company/logo_cofima_bon.jpg') }}">
-    @endif
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/logo-seul-cofima.png') }}">
 
     <link rel="stylesheet" href="{{ asset('assets/css/app.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
@@ -784,8 +781,7 @@
                 <div class="footer-left">
                     <a href="templateshub.net">COFIMA BENIN</a></a>
                 </div>
-                <div class="footer-right">
-                </div>
+                <div class="footer-right">V1.0</div>
             </footer>
         </div>
     </div>

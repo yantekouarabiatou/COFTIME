@@ -256,7 +256,7 @@ class MissionAnalyseController extends Controller
             'user',
             'missions',
             'charge',
-            'timeEntries'  // Ajout de cette variable
+            'timeEntries'
         ));
     }
 }

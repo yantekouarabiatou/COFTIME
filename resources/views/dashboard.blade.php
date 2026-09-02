@@ -36,7 +36,7 @@ use App\Helpers\UserHelper;
                 </div>
                 <div class="card-wrap">
                     <div class="card-header">
-                        <h4>Mes Dossiers</h4>
+                        <h4>Mes Activités</h4>
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
@@ -106,12 +106,12 @@ use App\Helpers\UserHelper;
                         </div>
                         <div class="col-md-4 text-center border-right">
                             <i class="fas fa-folder-open fa-2x mb-2 text-info"></i>
-                            <h6 class="mb-1">Dossiers travaillés</h6>
+                            <h6 class="mb-1">Activités travaillées</h6>
                             <h4 class="font-weight-bold text-info" id="dossiers-semaine">-</h4>
                         </div>
                         <div class="col-md-4 text-center">
                             <i class="fas fa-briefcase fa-2x mb-2 text-warning"></i>
-                            <h6 class="mb-1">Dossiers actifs</h6>
+                            <h6 class="mb-1">Activités actives</h6>
                             <h4 class="font-weight-bold text-warning" id="dossiers-actifs">-</h4>
                         </div>
                     </div>
@@ -167,7 +167,7 @@ use App\Helpers\UserHelper;
         <div class="col-lg-12 col-md-12">
             <div class="card modern-card">
                 <div class="card-header">
-                    <h4><i class="fas fa-fire text-danger"></i> Mes Dossiers les Plus Actifs</h4>
+                    <h4><i class="fas fa-fire text-danger"></i> Mes Activités les Plus Actifs</h4>
                     <small class="text-muted">Par nombre d'heures ce mois</small>
                 </div>
                 <div class="card-body">
@@ -182,8 +182,8 @@ use App\Helpers\UserHelper;
         <div class="col-12">
             <div class="card modern-card">
                 <div class="card-header">
-                    <h4><i class="fas fa-chart-bar text-info"></i> Répartition de Mes Heures par Dossier</h4>
-                    <small class="text-muted">Top 10 des dossiers (mois en cours)</small>
+                    <h4><i class="fas fa-chart-bar text-info"></i> Répartition de Mes Heures par Activité</h4>
+                    <small class="text-muted">Top 10 des activités (mois en cours)</small>
                 </div>
                 <div class="card-body">
                     <canvas id="chartHeuresParDossier" height="120"></canvas>
@@ -660,7 +660,7 @@ function updateMesDossiersChart(data) {
     if (chartMesDossiers) chartMesDossiers.destroy();
     
     if (!data.names || data.names.length === 0) {
-        $(ctx).parent().html('<div class="text-center py-4 text-muted"><i class="fas fa-inbox fa-3x mb-3"></i><p>Aucun dossier actif ce mois</p></div>');
+        $(ctx).parent().html('<div class="text-center py-4 text-muted"><i class="fas fa-inbox fa-3x mb-3"></i><p>Aucune activité active ce mois</p></div>');
         return;
     }
     
@@ -820,7 +820,7 @@ function updateStatsTable(data) {
             percent: percentages.heures 
         },
         { 
-            name: 'Dossiers travaillés', 
+            name: 'Activités travaillées', 
             icon: 'fa-folder', 
             color: '#3abaf4', 
             week: weekly.dossiers_travailles, 
@@ -828,7 +828,7 @@ function updateStatsTable(data) {
             percent: percentages.dossiers 
         },
         { 
-            name: 'Dossiers actifs', 
+            name: 'Activités actives', 
             icon: 'fa-briefcase', 
             color: '#ffa426', 
             week: data.totals.dossiers_actifs, 

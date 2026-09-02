@@ -267,7 +267,7 @@ use App\Helpers\UserHelper;
 <!-- Modal Export -->
 <div class="modal fade" id="exportModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
+        <div class="modal-content" style="margin-top: 100px;">
             <div class="modal-header">
                 <h5 class="modal-title">Exporter les résultats</h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -286,8 +286,8 @@ use App\Helpers\UserHelper;
                         <select name="export_format" class="form-control" required>
                             <option value="pdf">PDF (Rapport complet)</option>
                             <option value="excel">Excel (.xlsx)</option>
-                            <option value="csv">CSV (.csv)</option>
-                            <option value="json">JSON (.json)</option>
+                            <!-- <option value="csv">CSV (.csv)</option>
+                            <option value="json">JSON (.json)</option> -->
                         </select>
                     </div>
 

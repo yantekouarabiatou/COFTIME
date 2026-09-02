@@ -158,7 +158,7 @@
         $('#editIntitule').val(intitule);
         $('#editDescription').val(description);
 
-        let url = "/postes/" + id;
+        let url = $('{{ route("postes.update", ":id") }}').replace(':id', id);
         $('#editPosteForm').attr('action', url);
     });
 

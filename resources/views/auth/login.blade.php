@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Connexion - COFIMA</title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ asset('assets/img/logo-seul-cofima.png') }}">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" />
@@ -378,8 +381,8 @@
             </div>
 
             <div class="welcome-text">
-                <h1>Bienvenue !</h1>
-                <p>Connectez-vous à votre espace sécurisé pour accéder à tous vos services Coftime</p>
+                <h1>Bienvenue sur COFTIME!</h1>
+                <p>Connectez-vous à votre espace sécurisé pour accéder à tous vos services Coftime.</p>
             </div>
 
             <div class="illustration">

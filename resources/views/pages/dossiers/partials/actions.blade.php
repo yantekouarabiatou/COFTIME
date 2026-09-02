@@ -1,14 +1,14 @@
-<div class="btn-group" role="group">
-    <a href="{{ route('dossiers.show', $id) }}" class="btn btn-sm btn-info" title="Voir">
-        <i class="fas fa-eye"></i>
-    </a>
-    <a href="{{ route('dossiers.edit', $id) }}" class="btn btn-sm btn-warning" title="Modifier">
+{{-- pages/dossiers/partials/actions.blade.php --}}
+<a href="{{ route('dossiers.show', $dossier) }}" class="btn btn-sm btn-info">
+    <i class="fas fa-eye"></i>
+</a>
+
+@if($canEdit)
+    <a href="{{ route('dossiers.edit', $dossier) }}" class="btn btn-sm btn-warning">
         <i class="fas fa-edit"></i>
     </a>
-    <button type="button"
-            class="btn btn-sm btn-danger delete-dossier-btn"
-            title="Supprimer"
-            data-url="{{ route('dossiers.destroy', $id) }}">
+    <button class="btn btn-sm btn-danger delete-dossier-btn"
+            data-url="{{ route('dossiers.destroy', $dossier) }}">
         <i class="fas fa-trash"></i>
     </button>
-</div>
+@endif

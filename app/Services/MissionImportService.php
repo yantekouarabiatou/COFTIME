@@ -27,27 +27,6 @@ class MissionImportService
      */
     public function importAll(array $filters = []): array
     {
-        $response = Http::withHeaders([
-            'X-API-KEY' => $this->apiKey,
-            'Accept'    => 'application/json',
-        ])->get("{$this->apiUrl}/missions", $filters);
-
-        if (!$response->successful()) {
-            Log::error('Erreur API Cofplan', [
-                'status' => $response->status(),
-                'body'   => $response->body(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => 'Erreur lors de la récupération des missions.',
-                'status'  => $response->status(),
-            ];
-        }
-
-        $data      = $response->json();
-        $missions  = $data['data'] ?? [];
-
         $results = [
             'created' => 0,
             'updated' => 0,
@@ -55,16 +34,48 @@ class MissionImportService
             'errors'  => [],
         ];
 
-        foreach ($missions as $mission) {
-            try {
-                $this->importMission($mission, $results);
-            } catch (\Exception $e) {
-                Log::error("Erreur import mission #{$mission['id']}", [
-                    'error' => $e->getMessage(),
+        $page = 1;
+
+        do {
+            $response = Http::withHeaders([
+                'X-API-KEY' => $this->apiKey,
+                'Accept'    => 'application/json',
+            ])->get("{$this->apiUrl}/missions", array_merge($filters, [
+                'page'     => $page,
+                'per_page' => 100,
+            ]));
+
+            if (!$response->successful()) {
+                Log::error('Erreur API Cofplan', [
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
                 ]);
-                $results['errors'][] = "Mission #{$mission['id']} : {$e->getMessage()}";
+
+                return [
+                    'success' => false,
+                    'message' => 'Erreur lors de la récupération des missions.',
+                    'status'  => $response->status(),
+                ];
             }
-        }
+
+            $data     = $response->json();
+            $missions = $data['data'] ?? [];
+            $lastPage = $data['meta']['last_page'] ?? 1;
+
+            foreach ($missions as $mission) {
+                try {
+                    $this->importMission($mission, $results);
+                } catch (\Exception $e) {
+                    Log::error("Erreur import mission #{$mission['id']}", [
+                        'error' => $e->getMessage(),
+                    ]);
+                    $results['errors'][] = "Mission #{$mission['id']} : {$e->getMessage()}";
+                }
+            }
+
+            $page++;
+
+        } while ($page <= $lastPage);
 
         return ['success' => true, 'results' => $results];
     }

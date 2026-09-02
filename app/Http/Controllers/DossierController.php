@@ -19,22 +19,15 @@ class DossierController extends Controller
 {
     public function index(DossiersDataTable $dataTable)
     {
-        // Récupérer les dossiers accessibles
         $user = auth()->user();
 
-        if ($user->hasRole(['admin', 'super-admin', 'rh', 'manager', 'directeur-general'])) {
-            $totalDossiers = Dossier::count();
-            $dossiersEnCours = Dossier::enCours()->count();
-            $dossiersEnRetard = Dossier::enRetard()->count();
-            $dossiersClotures = Dossier::cloture()->count();
-        } else {
-            $accessibleDossiers = $user->accessibleDossiers();
+        // accessibleDossiers() gère désormais tous les cas de rôle
+        $base = $user->accessibleDossiers();
 
-            $totalDossiers = $accessibleDossiers->count();
-            $dossiersEnCours = $accessibleDossiers->enCours()->count();
-            $dossiersEnRetard = $accessibleDossiers->enRetard()->count();
-            $dossiersClotures = $accessibleDossiers->cloture()->count();
-        }
+        $totalDossiers    = (clone $base)->count();
+        $dossiersEnCours  = (clone $base)->enCours()->count();
+        $dossiersEnRetard = (clone $base)->enRetard()->count();
+        $dossiersClotures = (clone $base)->cloture()->count();
 
         return $dataTable->render('pages.dossiers.index', compact(
             'totalDossiers',
@@ -167,22 +160,18 @@ class DossierController extends Controller
 
     public function show(Dossier $dossier)
     {
-        // Vérifier l'accès
-        if (!$dossier->userCanAccess(auth()->id())) {
-            abort(403, 'Vous n\'avez pas accès à ce dossier.');
-        }
+        $this->authorizeAccess($dossier);
+
         $collaborateurs = User::where('id', '!=', auth()->id())->get();
         return view('pages.dossiers.show', compact('dossier', 'collaborateurs'));
     }
 
     public function edit(Dossier $dossier)
     {
-        // Vérifier l'accès
-        if (!$dossier->userCanAccess(auth()->id())) {
-            abort(403, 'Vous n\'avez pas accès à ce dossier.');
-        }
+        // Seul le créateur peut modifier
+        $this->authorizeEdit($dossier);
 
-        $clients = Client::whereIn('statut', ['actif', 'prospect'])->get();
+        $clients        = Client::whereIn('statut', ['actif', 'prospect'])->get();
         $collaborateurs = User::where('id', '!=', auth()->id())->get();
 
         return view('pages.dossiers.edit', compact('dossier', 'clients', 'collaborateurs'));
@@ -190,6 +179,8 @@ class DossierController extends Controller
 
     public function update(Request $request, Dossier $dossier)
     {
+
+        $this->authorizeEdit($dossier);
         // Vérifier l'accès
         if (!$dossier->userCanAccess(auth()->id())) {
             abort(403, 'Vous n\'avez pas accès à ce dossier.');
@@ -369,21 +360,85 @@ class DossierController extends Controller
 
     public function destroy(Dossier $dossier)
     {
+        $this->authorizeEdit($dossier); // même règle : seul le créateur supprime
+
         if ($dossier->timeEntries()->count() > 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'Impossible de supprimer ce dossier car il possède des entrées de temps associées.'
             ], 422);
         }
+
         if ($dossier->document) {
             Storage::disk('public')->delete($dossier->document);
         }
 
         $dossier->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Dossier supprimé avec succès.'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Dossier supprimé avec succès.']);
+    }
+
+    /**
+     * Vérifie que l'utilisateur peut voir ce dossier.
+     * (lié au dossier, ou directeur général, ou manager d'un lié)
+     */
+    private function authorizeAccess(Dossier $dossier): void
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('directeur-general')) {
+            return;
+        }
+
+        if ($user->hasRole('manager')) {
+            $subordinateIds = $user->subordinates()->pluck('id')->toArray();
+
+            $isLinked = $dossier->created_by === $user->id
+                || $dossier->collaborateurs()
+                    ->where('collaborateur_dossier.user_id', $user->id)
+                    ->where('collaborateur_dossier.is_active', true)
+                    ->exists();
+
+            $subordinateLinked = !empty($subordinateIds) && (
+                in_array($dossier->created_by, $subordinateIds)
+                || $dossier->collaborateurs()
+                    ->whereIn('collaborateur_dossier.user_id', $subordinateIds)
+                    ->where('collaborateur_dossier.is_active', true)
+                    ->exists()
+            );
+
+            if ($isLinked || $subordinateLinked) {
+                return;
+            }
+
+            abort(403, 'Vous n\'avez pas accès à ce dossier.');
+        }
+
+        // Tous les autres rôles
+        $canAccess = $dossier->created_by === $user->id
+            || $dossier->collaborateurs()
+                ->where('collaborateur_dossier.user_id', $user->id)
+                ->where('collaborateur_dossier.is_active', true)
+                ->exists();
+
+        if (!$canAccess) {
+            abort(403, 'Vous n\'avez pas accès à ce dossier.');
+        }
+    }
+    /**
+     * Seul le créateur peut modifier ou supprimer.
+     * Exception : le directeur général peut aussi modifier/supprimer.
+     */
+    private function authorizeEdit(Dossier $dossier): void
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole('directeur-general')) {
+            return;
+        }
+
+        if ($dossier->created_by !== $user->id) {
+            abort(403, 'Seul le créateur du dossier peut effectuer cette action.');
+        }
     }
 }

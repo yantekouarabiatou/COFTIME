@@ -461,24 +461,24 @@
             {{-- Heures sup --}}
             @if($heuresSup > 0)
             <div class="fte-kpi">
-                <div class="fte-kpi-icon" style="background:#edf1fb;color:#3a5fa8;">
+                <div class="fte-kpi-icon" style="background:#edf1fb;color:#dc3545;">
                     <i class="fas fa-plus-circle"></i>
                 </div>
                 <div class="fte-kpi-label">Heures sup.</div>
-                <div class="fte-kpi-value" style="color:#3a5fa8;">
+                <div class="fte-kpi-value" style="color:#dc3545;">
                     +{{ $hS }}h{{ $mS > 0 ? $mS.'m' : '' }}
                 </div>
                 <div class="fte-kpi-sub">Au-delà du contrat</div>
-                <div class="fte-kpi-accent" style="background:#3a5fa8;"></div>
+                <div class="fte-kpi-accent" style="background:#dc3545;"></div>
             </div>
             @endif
 
-            {{-- Activités --}}
+            {{-- Tâches --}}
             <div class="fte-kpi">
                 <div class="fte-kpi-icon" style="background:#faf5ff;color:#8b5cf6;">
                     <i class="fas fa-tasks"></i>
                 </div>
-                <div class="fte-kpi-label">Activités</div>
+                <div class="fte-kpi-label">Tâches</div>
                 <div class="fte-kpi-value">{{ $dailyEntry->timeEntries->count() }}</div>
                 <div class="fte-kpi-sub">Entrées saisies</div>
                 <div class="fte-kpi-accent" style="background:#8b5cf6;"></div>
@@ -486,7 +486,7 @@
 
         </div>
 
-        {{-- ─── Activités ──────────────────────────────────────────── --}}
+        {{-- ─── Tâches ──────────────────────────────────────────────── --}}
         <div class="fte-card">
             <div class="fte-card-head">
                 <div class="fte-card-head-icon"><i class="fas fa-list-ul"></i></div>
@@ -501,7 +501,7 @@
                         <thead>
                             <tr>
                                 <th style="width:40px;">#</th>
-                                <th>Dossier</th>
+                                <th>Activité</th>
                                 <th>Client</th>
                                 <th class="text-center">Début</th>
                                 <th class="text-center">Fin</th>
@@ -598,7 +598,7 @@
         <div class="fte-card">
             <div class="fte-card-head">
                 <div class="fte-card-head-icon"><i class="fas fa-chart-pie"></i></div>
-                <h5>Répartition par dossier</h5>
+                <h5>Répartition par activité</h5>
             </div>
             <div class="fte-card-body">
                 <div class="row align-items-center">
