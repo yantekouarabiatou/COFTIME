@@ -115,7 +115,7 @@
         <div class="entete-texte">
             <span class="societe">COFIMA BENIN</span><br>
             Compagnie Fiduciaire de Management et d'Audit<br>
-            Cotonou — Bénin
+            Cotonou - Bénin
         </div>
     </div>
 

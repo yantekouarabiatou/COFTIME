@@ -38,7 +38,12 @@ class DailyEntryController extends Controller
             $mois->copy()->endOfMonth(),
         ]);
 
-        if ($user->hasRole('directeur-general')) {
+        $mineOnly = $request->boolean('mine');
+
+        if ($mineOnly) {
+            // Vue "Mes listes de temps" : uniquement mes propres feuilles, quel que soit le rôle
+            $query->where('user_id', $user->id);
+        } elseif ($user->hasRole('directeur-general')) {
             // Voit tout, aucun filtre
         } elseif ($user->hasRole('manager')) {
             $subordinateIds = $user->subordinates()->pluck('id')->toArray();
@@ -55,7 +60,7 @@ class DailyEntryController extends Controller
             $query->where('statut', $request->statut);
         }
 
-        if ($request->filled('user')) {
+        if (!$mineOnly && $request->filled('user')) {
             $requestedId = (int) $request->user;
             // Vérifier que l'utilisateur a le droit de filtrer sur cet ID
             $canFilter = $user->hasRole('directeur-general')
@@ -80,21 +85,21 @@ class DailyEntryController extends Controller
 
         // Liste collaborateurs pour le filtre select
         $users = collect();
-        if ($user->hasRole('directeur-general')) {
+        if (!$mineOnly && $user->hasRole('directeur-general')) {
             $users = User::where('is_active', 1)->orderBy('prenom')->get(['id', 'prenom', 'nom']);
-        } elseif ($user->hasRole('manager')) {
+        } elseif (!$mineOnly && $user->hasRole('manager')) {
             $users = $user->subordinates()->where('is_active', 1)->orderBy('prenom')->get(['id', 'prenom', 'nom']);
         }
 
         return view('pages.daily-entries.index', compact(
             'dailyEntries', 'totalHours', 'submittedCount',
-            'validatedCount', 'rejectedCount', 'users', 'mois'
+            'validatedCount', 'rejectedCount', 'users', 'mois', 'mineOnly'
         ));
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
     // CREATE / STORE
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
 
     public function create()
     {
@@ -190,9 +195,9 @@ class DailyEntryController extends Controller
             ->with('success', 'Feuille de temps enregistrée avec succès.');
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
     // SHOW / EDIT / UPDATE / DESTROY
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
 
     public function show(DailyEntry $dailyEntry)
     {
@@ -356,9 +361,9 @@ class DailyEntryController extends Controller
 
 
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
     // VALIDATION HEBDOMADAIRE GROUPÉE
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
 
     /**
      * Valider toutes les feuilles soumises d'un collaborateur pour une semaine.
@@ -432,9 +437,9 @@ class DailyEntryController extends Controller
         return response()->json(['success' => true, 'message' => "{$count} feuille(s) refusée(s)."]);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
     // CRÉATION RAPIDE DE DOSSIER (AJAX)
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
 
     public function createDossierQuick(Request $request)
     {
@@ -478,12 +483,18 @@ class DailyEntryController extends Controller
         ]);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
     // EXPORT / PDF
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
 
     public function export(Request $request)
     {
+        abort_unless(
+            auth()->user()->can('exporter les feuilles de temps'),
+            403,
+            "Vous n'avez pas la permission d'exporter les feuilles de temps."
+        );
+
         $request->validate([
             'date_debut' => 'required|date',
             'date_fin'   => 'required|date|after_or_equal:date_debut',
@@ -516,6 +527,165 @@ class DailyEntryController extends Controller
         }
     }
 
+    /**
+     * Export mensuel (Excel/PDF) des feuilles de temps d'un collaborateur -
+     * utilisé par les boutons présents sur chaque ligne de la liste.
+     */
+    public function exportUserMonth(User $user, string $mois, string $format)
+    {
+        $moisDate = Carbon::parse($mois . '-01');
+
+        return $this->exportUserPeriodResponse(
+            $user,
+            $moisDate->copy()->startOfMonth(),
+            $moisDate->copy()->endOfMonth(),
+            $format,
+            $mois
+        );
+    }
+
+    /**
+     * Export (Excel/PDF) des feuilles de temps d'un collaborateur sur une
+     * période libre (page "Liste de Temps").
+     */
+    public function exportUserPeriod(Request $request, User $user)
+    {
+        // Validation légère : on ne bloque jamais le téléchargement, on retombe
+        // sur des valeurs par défaut sensées (mois en cours) si absentes/invalides.
+        $debut = $request->filled('date_debut') && strtotime($request->date_debut)
+            ? Carbon::parse($request->date_debut)->startOfDay()
+            : now()->startOfMonth();
+
+        $fin = $request->filled('date_fin') && strtotime($request->date_fin)
+            ? Carbon::parse($request->date_fin)->endOfDay()
+            : now()->endOfMonth();
+
+        if ($fin->lt($debut)) {
+            [$debut, $fin] = [$fin->copy()->startOfDay(), $debut->copy()->endOfDay()];
+        }
+
+        $format = in_array($request->input('format'), ['excel', 'pdf']) ? $request->input('format') : 'pdf';
+        $slug   = $debut->format('Y-m-d') . '_au_' . $fin->format('Y-m-d');
+
+        return $this->exportUserPeriodResponse($user, $debut, $fin, $format, $slug);
+    }
+
+    /**
+     * Génère l'export (Excel/PDF) des feuilles de temps d'un collaborateur
+     * pour la période [$debut, $fin]. Réservé à l'administrateur, la
+     * direction générale, ou un manager exportant les feuilles d'un de ses
+     * subordonnés - et uniquement aux utilisateurs disposant de la
+     * permission "exporter les feuilles de temps".
+     */
+    private function exportUserPeriodResponse(User $user, Carbon $debut, Carbon $fin, string $format, string $slug)
+    {
+        $authUser = auth()->user();
+
+        abort_unless(
+            $authUser->can('exporter les feuilles de temps'),
+            403,
+            "Vous n'avez pas la permission d'exporter les feuilles de temps."
+        );
+
+        $canAccess = $authUser->hasRole(['admin', 'directeur-general'])
+            || $authUser->id === $user->id
+            || ($authUser->hasRole('manager') && $authUser->isManagerOf($user->id));
+
+        abort_unless($canAccess, 403, 'Vous ne pouvez exporter que les feuilles de vos collaborateurs.');
+
+        $entries = DailyEntry::with(['timeEntries.dossier.client', 'user.poste'])
+            ->where('user_id', $user->id)
+            ->whereBetween('jour', [$debut, $fin])
+            ->orderBy('jour')
+            ->get();
+
+        $slugName = \Illuminate\Support\Str::slug($user->prenom . '-' . $user->nom);
+        $filename = "feuille-temps_{$slugName}_{$slug}";
+
+        if ($format === 'excel') {
+            return Excel::download(
+                new \App\Exports\UserPeriodTimesheetExport($user, $entries, $debut, $fin),
+                $filename . '.xlsx'
+            );
+        }
+
+        $companySetting = CompanySetting::first();
+        $logoBase64     = $this->resolveLogoBase64($companySetting);
+
+        $pdf = Pdf::loadView('pages.daily-entries.export.user-period-pdf', [
+            'user'           => $user->load('poste'),
+            'entries'        => $entries,
+            'debut'          => $debut,
+            'fin'            => $fin,
+            'logoBase64'     => $logoBase64,
+            'companySetting' => $companySetting,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->download($filename . '.pdf');
+    }
+
+    /**
+     * Page "Liste de Temps" - sélection d'un collaborateur et d'une période
+     * libre, avec aperçu et export Excel/PDF. Réservée à l'administrateur,
+     * la direction générale, ou un manager (pour ses subordonnés).
+     */
+    public function listByUser(Request $request)
+    {
+        $authUser = auth()->user();
+
+        if ($authUser->hasRole(['admin', 'directeur-general'])) {
+            $users = User::where('is_active', 1)->orderBy('prenom')->get(['id', 'prenom', 'nom']);
+        } elseif ($authUser->hasRole('manager')) {
+            $users = User::where('is_active', 1)
+                ->where(fn($q) => $q->where('id', $authUser->id)->orWhere('manager_id', $authUser->id))
+                ->orderBy('prenom')
+                ->get(['id', 'prenom', 'nom']);
+        } else {
+            $users = User::where('id', $authUser->id)->get(['id', 'prenom', 'nom']);
+        }
+
+        $selectedUser = null;
+        $entries      = collect();
+        $dateDebut    = null;
+        $dateFin      = null;
+
+        // On ne bloque jamais l'affichage par une validation stricte : seul le
+        // choix d'un collaborateur est nécessaire, la période retombe sur le
+        // mois en cours si elle est absente ou invalide.
+        if ($request->filled('user_id') && User::where('id', $request->input('user_id'))->exists()) {
+            $requestedId = (int) $request->input('user_id');
+            $canAccess   = $authUser->hasRole(['admin', 'directeur-general'])
+                || $authUser->id === $requestedId
+                || ($authUser->hasRole('manager') && $authUser->isManagerOf($requestedId));
+
+            abort_unless($canAccess, 403, "Vous n'avez pas accès aux feuilles de temps de ce collaborateur.");
+
+            $selectedUser = User::findOrFail($requestedId);
+
+            $dateDebut = $request->filled('date_debut') && strtotime($request->input('date_debut'))
+                ? Carbon::parse($request->input('date_debut'))->startOfDay()
+                : now()->startOfMonth();
+
+            $dateFin = $request->filled('date_fin') && strtotime($request->input('date_fin'))
+                ? Carbon::parse($request->input('date_fin'))->endOfDay()
+                : now()->endOfMonth();
+
+            if ($dateFin->lt($dateDebut)) {
+                [$dateDebut, $dateFin] = [$dateFin->copy()->startOfDay(), $dateDebut->copy()->endOfDay()];
+            }
+
+            $entries = DailyEntry::with(['timeEntries.dossier.client', 'user.poste'])
+                ->where('user_id', $requestedId)
+                ->whereBetween('jour', [$dateDebut, $dateFin])
+                ->orderBy('jour')
+                ->get();
+        }
+
+        return view('pages.daily-entries.liste', compact(
+            'users', 'selectedUser', 'entries', 'dateDebut', 'dateFin'
+        ));
+    }
+
     public function pdf(DailyEntry $dailyEntry)
     {
         $dailyEntry->load(['user.poste', 'timeEntries.dossier']);
@@ -524,12 +694,8 @@ class DailyEntryController extends Controller
             abort(404, 'Feuille introuvable.');
         }
 
-        $logoPath   = public_path('images/logo.png');
-        $logoBase64 = file_exists($logoPath)
-            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
-            : null;
-
         $companySetting = CompanySetting::first();
+        $logoBase64     = $this->resolveLogoBase64($companySetting);
         $dateFile       = Carbon::parse($dailyEntry->jour)->format('Y-m-d');
 
         $pdf = Pdf::loadView('pages.daily-entries.export.pdf1', [
@@ -541,9 +707,9 @@ class DailyEntryController extends Controller
         return $pdf->stream("feuille-temps-{$dateFile}.pdf");
     }
 
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
     // HELPERS PRIVÉS
-    // ════════════════════════════════════════════════════════════════════════
+    // ------------------------------------------------------------------------
 
     private function resolveSemaine(Request $request): array
     {
@@ -551,6 +717,37 @@ class DailyEntryController extends Controller
             return [(int) $request->semaine, (int) $request->annee];
         }
         return [now()->isoWeek(), now()->isoWeekYear()];
+    }
+
+    /**
+     * Retourne le logo de l'entreprise encodé en base64 pour les PDF, en
+     * suivant la même chaîne de résolution que CompanySetting::logo_url :
+     * logo uploadé (storage/app/public) puis logo par défaut du thème.
+     */
+    private function resolveLogoBase64(?CompanySetting $companySetting): ?string
+    {
+        $candidates = [];
+
+        if ($companySetting?->logo) {
+            $candidates[] = storage_path('app/public/' . $companySetting->logo);
+        }
+
+        $candidates[] = public_path('assets/img/logo_cofima_bon.jpg');
+        $candidates[] = public_path('assets/img/logo-seul-cofima.png');
+
+        foreach ($candidates as $path) {
+            if (is_file($path)) {
+                $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+                    'jpg', 'jpeg' => 'image/jpeg',
+                    'svg' => 'image/svg+xml',
+                    default => 'image/png',
+                };
+
+                return "data:{$mime};base64," . base64_encode(file_get_contents($path));
+            }
+        }
+
+        return null;
     }
 
     private function getDossiersForUser(User $user)

@@ -68,6 +68,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'exporter les congés en excel', 'group' => 'exports'],
             ['name' => 'exporter les congés en pdf', 'group' => 'exports'],
             ['name' => 'exporter les soldes de congés', 'group' => 'exports'],
+            ['name' => 'exporter les feuilles de temps', 'group' => 'exports'],
 
             // ================= PARAMÈTRES =================
             ['name' => 'voir les paramètres', 'group' => 'parametres'],
@@ -166,6 +167,7 @@ class RolePermissionSeeder extends Seeder
              'supprimer des entrées journalières',
              'valider les feuilles de temps',
              'refuser les feuilles de temps',
+             'exporter les feuilles de temps',
         ]);
 
         // EMPLOYÉ

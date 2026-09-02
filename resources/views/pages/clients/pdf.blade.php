@@ -232,7 +232,7 @@
             </td>
             <td class="header-title-cell">
                 <h1>Liste des Clients</h1>
-                <div class="subtitle">Rapport complet — Gestion de la clientèle</div>
+                <div class="subtitle">Rapport complet - Gestion de la clientèle</div>
             </td>
             <td class="header-meta-cell">
                 <div class="meta-line"><strong>Date d'export :</strong> {{ $now->format('d/m/Y') }}</div>

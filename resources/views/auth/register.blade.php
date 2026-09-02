@@ -247,7 +247,7 @@
         </div>
 
         <div class="footer">
-            COFIMA © {{ date('Y') }} — Tous droits réservés
+            COFIMA © {{ date('Y') }} - Tous droits réservés
         </div>
 
     </div>

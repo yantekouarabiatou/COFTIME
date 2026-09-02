@@ -1,6 +1,6 @@
 @extends('layaout')
 
-@section('title', 'Détails du Solde — ' . ($solde->user->prenom ?? '') . ' ' . ($solde->user->nom ?? ''))
+@section('title', 'Détails du Solde - ' . ($solde->user->prenom ?? '') . ' ' . ($solde->user->nom ?? ''))
 
 @section('content')
 
@@ -119,7 +119,7 @@
         ============================================================ --}}
         <div class="card card-total-global mb-4">
             <div class="card-header">
-                <h4><i class="fas fa-chart-bar"></i> Récapitulatif global — {{ $anneeMin }} à {{ $anneeMax }} ({{ $tousLesSoldes->count() }} année(s))</h4>
+                <h4><i class="fas fa-chart-bar"></i> Récapitulatif global - {{ $anneeMin }} à {{ $anneeMax }} ({{ $tousLesSoldes->count() }} année(s))</h4>
             </div>
             <div class="card-body">
                 <div class="row align-items-center">
@@ -225,7 +225,7 @@
         ============================================================ --}}
         <div class="card">
             <div class="card-header">
-                <h4><i class="fas fa-history"></i> Historique des soldes — {{ $tousLesSoldes->count() }} année(s)</h4>
+                <h4><i class="fas fa-history"></i> Historique des soldes - {{ $tousLesSoldes->count() }} année(s)</h4>
             </div>
             <div class="card-body p-0">
 
@@ -488,12 +488,12 @@
                                 @if($p < 25)
                                 <div class="alert alert-danger alert-sm">
                                     <i class="fas fa-exclamation-triangle mr-1"></i>
-                                    Solde critique — moins de 25% restant
+                                    Solde critique - moins de 25% restant
                                 </div>
                                 @elseif($p < 50)
                                 <div class="alert alert-warning alert-sm">
                                     <i class="fas fa-exclamation-circle mr-1"></i>
-                                    Solde modéré — moins de 50% restant
+                                    Solde modéré - moins de 50% restant
                                 </div>
                                 @endif
 

@@ -168,6 +168,15 @@ Route::middleware(['auth', 'otp.verified'])->group(function () {
     Route::get('/statistics/export', [StatisticsController::class, 'export'])->name('statistics.export');
     Route::post('/stats/annual/update', [StatisticsController::class, 'updateCharts'])->name('stats.annual.update');
     Route::middleware(['auth'])->group(function () {
+        // ── Routes statiques AVANT le resource (sinon interceptées par
+        //    GET /daily-entries/{daily_entry} défini par Route::resource) ──
+        Route::get('daily-entries/liste', [DailyEntryController::class, 'listByUser'])->name('daily-entries.liste');
+        Route::get('daily-entries/export-user/{user}/{mois}/{format}', [DailyEntryController::class, 'exportUserMonth'])
+            ->name('daily-entries.export-user')
+            ->where(['mois' => '\d{4}-\d{2}', 'format' => 'excel|pdf']);
+        Route::get('daily-entries/export-user-period/{user}', [DailyEntryController::class, 'exportUserPeriod'])
+            ->name('daily-entries.export-user-period');
+
         Route::resource('daily-entries', DailyEntryController::class)->names('daily-entries');
 
         // Routes supplémentaires si besoin (ex: rapport mensuel)
@@ -187,6 +196,11 @@ Route::middleware(['auth', 'otp.verified'])->group(function () {
         Route::post('/bulk-validate', [DailyEntryController::class, 'bulkValidate'])->name('bulk-validate');
         Route::post('/bulk-reject',   [DailyEntryController::class, 'bulkReject'])->name('bulk-reject');
         Route::post('/validate-all',  [DailyEntryController::class, 'validateAll'])->name('validate-all');
+
+        // NB : /liste, /export-user/... et /export-user-period/... sont enregistrées
+        // plus haut, avant Route::resource('daily-entries', ...), pour éviter d'être
+        // interceptées par la route show GET /daily-entries/{daily_entry}.
+
         // ── Routes avec paramètre dynamique ─────────────────────────────
         Route::get('/{dailyEntry}',          [DailyEntryController::class, 'show'])->name('show');
         Route::get('/{dailyEntry}/edit',     [DailyEntryController::class, 'edit'])->name('edit');

@@ -463,9 +463,23 @@
                                                 </li>
                                             @endcan
                                             @can(['voir les entrées journalières', 'voir tous les temps'])
-                                                <li class="{{ request()->routeIs('daily-entries.index') ? 'active' : '' }}">
+                                                <li class="{{ request()->routeIs('daily-entries.index') && !request()->boolean('mine') ? 'active' : '' }}">
                                                     <a class="nav-link" href="{{ route('daily-entries.index') }}">
                                                         <i class="fas fa-list-alt"></i> Liste des taches
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('voir les entrées journalières')
+                                                <li class="{{ request()->routeIs('daily-entries.index') && request()->boolean('mine') ? 'active' : '' }}">
+                                                    <a class="nav-link" href="{{ route('daily-entries.index', ['mine' => 1]) }}">
+                                                        <i class="fas fa-user-clock"></i> Mes listes de temps
+                                                    </a>
+                                                </li>
+                                            @endcan
+                                            @can('exporter les feuilles de temps')
+                                                <li class="{{ request()->routeIs('daily-entries.liste') ? 'active' : '' }}">
+                                                    <a class="nav-link" href="{{ route('daily-entries.liste') }}">
+                                                        <i class="fas fa-file-export"></i> Liste de Temps
                                                     </a>
                                                 </li>
                                             @endcan
@@ -810,7 +824,7 @@
                             <option value="">-- Sélectionner un dossier --</option>
                             @foreach(App\Models\Dossier::enCours()->orderBy('reference')->get() as $dossier)
                                 <option value="{{ $dossier->id }}">
-                                    {{ $dossier->reference }} — {{ $dossier->nom }}
+                                    {{ $dossier->reference }} - {{ $dossier->nom }}
                                 </option>
                             @endforeach
                         </select>
@@ -879,7 +893,7 @@
                             <optgroup label="Dossier spécifique">
                                 @foreach(App\Models\Dossier::enCours()->orderBy('reference')->get() as $dossier)
                                     <option value="{{ $dossier->id }}">
-                                        {{ $dossier->reference }} — {{ $dossier->nom }}
+                                        {{ $dossier->reference }} - {{ $dossier->nom }}
                                     </option>
                                 @endforeach
                             </optgroup>

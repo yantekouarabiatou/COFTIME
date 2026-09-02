@@ -4,21 +4,23 @@
     $moisPrecedent  = $moisActuel->copy()->subMonth()->format('Y-m');
     $moisSuivant    = $moisActuel->copy()->addMonth()->format('Y-m');
     $isCurrentMonth = $moisActuel->format('Y-m') === now()->format('Y-m');
-    $canBulk        = auth()->user()->hasRole(['responsable', 'directeur-general', 'admin']);
+    $mineOnly       = $mineOnly ?? false;
+    $canBulk        = !$mineOnly && auth()->user()->hasRole(['responsable', 'directeur-general', 'admin']);
+    $pageTitle      = $mineOnly ? 'Mes Feuilles de Temps' : 'Feuilles de Temps';
 @endphp
 
 @extends('layaout')
 
-@section('title', 'Feuilles de Temps — ' . $moisActuel->translatedFormat('F Y'))
+@section('title', $pageTitle . ' - ' . $moisActuel->translatedFormat('F Y'))
 
 @section('content')
 <section class="section">
 
-    {{-- ─── En-tête ─────────────────────────────────────────────── --}}
+    {{-- --- En-tête ----------------------------------------------- --}}
     <div class="section-header">
-        <h1><i class="fas fa-clock"></i> Feuilles de Temps</h1>
+        <h1><i class="fas fa-clock"></i> {{ $pageTitle }}</h1>
         <div class="section-header-breadcrumb">
-            <div class="breadcrumb-item active">Feuilles de Temps</div>
+            <div class="breadcrumb-item active">{{ $pageTitle }}</div>
         </div>
     </div>
 
@@ -27,7 +29,7 @@
             <div class="col-12">
                 <div class="card">
 
-                    {{-- ─── Card header ─────────────────────────────────── --}}
+                    {{-- --- Card header ----------------------------------- --}}
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
 
                         {{-- Navigation mois --}}
@@ -58,10 +60,12 @@
                                class="btn btn-primary btn-sm btn-icon icon-left">
                                 <i class="fas fa-plus"></i> Nouvelle saisie
                             </a>
-                            <button type="button" class="btn btn-outline-success btn-sm"
-                                    data-toggle="modal" data-target="#exportModal">
-                                <i class="fas fa-file-export"></i> Exporter
-                            </button>
+                            @can('exporter les feuilles de temps')
+                                <button type="button" class="btn btn-outline-success btn-sm"
+                                        data-toggle="modal" data-target="#exportModal">
+                                    <i class="fas fa-file-export"></i> Exporter
+                                </button>
+                            @endcan
                             <button type="button" class="btn btn-outline-secondary btn-sm"
                                     onclick="window.print()">
                                 <i class="fas fa-print"></i> Imprimer
@@ -71,8 +75,11 @@
 
                     <div class="card-body">
 
-                        {{-- ─── Barre de filtres ────────────────────────── --}}
+                        {{-- --- Barre de filtres -------------------------- --}}
                         <form action="{{ route('daily-entries.index') }}" method="GET" id="filterForm">
+                            @if($mineOnly)
+                                <input type="hidden" name="mine" value="1">
+                            @endif
                             <div class="row align-items-end mb-3 g-2">
 
                                 <div class="col-md-2">
@@ -101,7 +108,7 @@
                                         <i class="fas fa-user mr-1"></i>Collaborateur
                                     </label>
                                     <select name="user" id="userFilter" class="form-control">
-                                        <option value="">— Tous —</option>
+                                        <option value="">- Tous -</option>
                                         @foreach($users as $u)
                                             <option value="{{ $u->id }}"
                                                 {{ request('user') == $u->id ? 'selected' : '' }}>
@@ -117,7 +124,7 @@
                                         <i class="fas fa-tag mr-1"></i>Statut
                                     </label>
                                     <select name="statut" class="form-control">
-                                        <option value="">— Tous —</option>
+                                        <option value="">- Tous -</option>
                                         <option value="soumis"  {{ request('statut') === 'soumis'  ? 'selected' : '' }}>Soumis</option>
                                         <option value="validé"  {{ request('statut') === 'validé'  ? 'selected' : '' }}>Validé</option>
                                         <option value="refusé"  {{ request('statut') === 'refusé'  ? 'selected' : '' }}>Refusé</option>
@@ -129,7 +136,7 @@
                                         <i class="fas fa-search"></i> Filtrer
                                     </button>
                                     @if(request()->hasAny(['date', 'user', 'statut', 'pending']))
-                                        <a href="{{ route('daily-entries.index', ['mois' => $moisActuel->format('Y-m')]) }}"
+                                        <a href="{{ route('daily-entries.index', array_filter(['mois' => $moisActuel->format('Y-m'), 'mine' => $mineOnly ? 1 : null])) }}"
                                            class="btn btn-outline-secondary btn-sm">
                                             <i class="fas fa-times"></i> Réinitialiser
                                         </a>
@@ -138,7 +145,7 @@
                             </div>
                         </form>
 
-                        {{-- ─── Barre d'actions groupées (gestionnaires uniquement) ── --}}
+                        {{-- --- Barre d'actions groupées (gestionnaires uniquement) -- --}}
                         @if($canBulk)
                         <div class="alert alert-light border mb-3 py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
                              id="bulk-bar" style="display:none!important;">
@@ -184,7 +191,7 @@
                         @endif
                         @endif
 
-                        {{-- ─── Tableau ──────────────────────────────────── --}}
+                        {{-- --- Tableau ------------------------------------ --}}
                         @if($dailyEntries->isEmpty())
                             <div class="text-center py-5">
                                 <i class="fas fa-calendar-times fa-5x text-muted mb-4 d-block"></i>
@@ -230,6 +237,9 @@
                                                 $isDG        = $authUser->hasRole('directeur-general');
                                                 $isManager   = $authUser->hasRole('manager') && $authUser->isManagerOf($entry->user_id);
                                                 $isSubmitted = $entry->statut === 'soumis';
+                                                $isSamePoste = !$isMine
+                                                    && $authUser->poste_id
+                                                    && $entry->user->poste_id === $authUser->poste_id;
 
                                                 $canManage   = ($isDG || $isManager) && !$isMine;
                                                 $canDelete   = $isMine || $canManage;
@@ -424,6 +434,24 @@
                                                             </button>
                                                         @endif
 
+                                                        {{-- Export mensuel (Excel/PDF) : admin, DG, ou manager du collaborateur, avec permission --}}
+                                                        @php
+                                                            $canExportRow = auth()->user()->can('exporter les feuilles de temps')
+                                                                && ($isDG || $authUser->hasRole('admin') || $isManager || $isMine);
+                                                        @endphp
+                                                        @if($canExportRow)
+                                                            <a href="{{ route('daily-entries.export-user', ['user' => $entry->user_id, 'mois' => $moisActuel->format('Y-m'), 'format' => 'excel']) }}"
+                                                               class="btn btn-outline-success"
+                                                               title="Exporter Excel - {{ ucfirst($moisActuel->translatedFormat('F Y')) }} - {{ $entry->user->prenom }} {{ $entry->user->nom }}">
+                                                                <i class="fas fa-file-excel"></i>
+                                                            </a>
+                                                            <a href="{{ route('daily-entries.export-user', ['user' => $entry->user_id, 'mois' => $moisActuel->format('Y-m'), 'format' => 'pdf']) }}"
+                                                               class="btn btn-outline-danger"
+                                                               title="Exporter PDF - {{ ucfirst($moisActuel->translatedFormat('F Y')) }} - {{ $entry->user->prenom }} {{ $entry->user->nom }}">
+                                                                <i class="fas fa-file-pdf"></i>
+                                                            </a>
+                                                        @endif
+
                                                         {{-- Supprimer : propriétaire, manager direct, ou DG --}}
                                                         @if($canDelete)
                                                             <button type="button" class="btn btn-outline-danger delete-btn"
@@ -452,7 +480,7 @@
                                     à {{ $dailyEntries->lastItem() }}
                                     sur {{ $dailyEntries->total() }}
                                     entrée{{ $dailyEntries->total() > 1 ? 's' : '' }}
-                                    —
+                                    -
                                     <strong>{{ ucfirst($moisActuel->translatedFormat('F Y')) }}</strong>
                                 </div>
                                 <div>
@@ -466,7 +494,7 @@
             </div>
         </div>
 
-        {{-- ─── Statistiques ──────────────────────────────────────────── --}}
+        {{-- --- Statistiques -------------------------------------------- --}}
         <div class="row mt-4">
             <div class="col-12 mb-2">
                 <p class="text-muted small mb-0">
@@ -519,7 +547,7 @@
     </div>{{-- /section-body --}}
 </section>
 
-{{-- ─── Modal Export ──────────────────────────────────────────────── --}}
+{{-- --- Modal Export ------------------------------------------------ --}}
 <div class="modal fade" id="exportModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
@@ -602,15 +630,15 @@
 <script>
 $(document).ready(function () {
 
-    // ── Select2 ─────────────────────────────────────────────────────
+    // -- Select2 -----------------------------------------------------
     $('#userFilter').select2({
-        placeholder: '— Tous les collaborateurs —',
+        placeholder: '- Tous les collaborateurs -',
         allowClear: true,
         width: '100%',
         language: { noResults: () => 'Aucun résultat', searching: () => 'Recherche…' }
     });
 
-    // ── Changement de mois → rechargement ───────────────────────────
+    // -- Changement de mois → rechargement ---------------------------
     $('#filter-mois').on('change', function () {
         const url = new URL(window.location.href);
         url.searchParams.set('mois', this.value);
@@ -618,9 +646,9 @@ $(document).ready(function () {
         window.location.href = url.toString();
     });
 
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     // SÉLECTION MULTIPLE
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
 
     function getSelectedIds() {
         return $('.entry-checkbox:checked').map(function () {
@@ -668,9 +696,9 @@ $(document).ready(function () {
         updateBulkBar();
     });
 
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     // VALIDATION INDIVIDUELLE
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     $(document).on('click', '.validate-btn', function () {
         const url  = $(this).data('url');
         const name = $(this).data('name');
@@ -678,7 +706,7 @@ $(document).ready(function () {
 
         Swal.fire({
             title: 'Valider la feuille ?',
-            html: `Confirmer la validation de <strong>${name}</strong> — <strong>${date}</strong> ?`,
+            html: `Confirmer la validation de <strong>${name}</strong> - <strong>${date}</strong> ?`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Oui, valider',
@@ -699,9 +727,9 @@ $(document).ready(function () {
         });
     });
 
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     // REFUS INDIVIDUEL (soumis ou re-refus pour modifier le motif)
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     $(document).on('click', '.reject-btn', function () {
         const url   = $(this).data('url');
         const name  = $(this).data('name');
@@ -709,7 +737,7 @@ $(document).ready(function () {
         const motif = $(this).data('motif') || '';
 
         Swal.fire({
-            title: `Refuser — ${name}`,
+            title: `Refuser - ${name}`,
             html: `<small class="text-muted">Feuille du ${date}</small>`,
             input: 'textarea',
             inputLabel: 'Motif du refus (obligatoire)',
@@ -740,9 +768,9 @@ $(document).ready(function () {
         });
     });
 
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     // VALIDATION GROUPÉE (sélection)
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     $('#bulk-validate-btn').on('click', function () {
         const ids   = getSelectedIds();
         const count = ids.length;
@@ -771,9 +799,9 @@ $(document).ready(function () {
         });
     });
 
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     // REFUS GROUPÉ (sélection)
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     $('#bulk-reject-btn').on('click', function () {
         const ids   = getSelectedIds();
         const count = ids.length;
@@ -805,9 +833,9 @@ $(document).ready(function () {
         });
     });
 
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     // TOUT VALIDER (toutes les soumises du mois)
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     $('#validate-all-btn').on('click', function () {
         const mois  = '{{ $moisActuel->format('Y-m') }}';
         const count = {{ $submittedCount }};
@@ -837,9 +865,9 @@ $(document).ready(function () {
         });
     });
 
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     // SUPPRESSION INDIVIDUELLE
-    // ════════════════════════════════════════════════════════════════
+    // ----------------------------------------------------------------
     $(document).on('click', '.delete-btn', function () {
         const url  = $(this).data('url');
         const name = $(this).data('name');

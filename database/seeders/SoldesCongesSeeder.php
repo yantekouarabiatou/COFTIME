@@ -106,7 +106,7 @@ class SoldesCongesSeeder extends Seeder
 
             // Résumé par utilisateur
             $total = collect($data['soldes'])->filter(fn($v) => $v > 0)->sum();
-            $this->command->line("  ✔  {$data['email']} — total disponible (années passées) : {$total} j.");
+            $this->command->line("  ✔  {$data['email']} - total disponible (années passées) : {$total} j.");
         }
     }
 
@@ -165,7 +165,7 @@ class SoldesCongesSeeder extends Seeder
                     ]);
 
                 $this->command->line(
-                    "  ↺  {$data['email']} (2026) — solde existant conservé, "
+                    "  ↺  {$data['email']} (2026) - solde existant conservé, "
                     . "jours_pris={$existant->jours_pris}, jours_restants=" . max(0, $quota2026 - $existant->jours_pris)
                 );
             } else {
