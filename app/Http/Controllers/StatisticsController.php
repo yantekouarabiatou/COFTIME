@@ -19,11 +19,11 @@ class StatisticsController extends Controller
      * Afficher la page des statistiques globales (Admin uniquement)
      */
     public function index()
-    {
-        // Vérifier que l'utilisateur est admin
-        if (!auth()->user()->hasRole('admin')) {
-            abort(403, 'Accès non autorisé');
-        }
+ {
+    //     // Vérifier que l'utilisateur est admin
+    //     if (!auth()->user()->hasRole('admin')) {
+    //         abort(403, 'Accès non autorisé');
+    //     }
 
         return view('pages.statistics.statglobale');
     }
@@ -33,10 +33,10 @@ class StatisticsController extends Controller
      */
     public function globalStats(Request $request)
     {
-        // Vérifier que l'utilisateur est admin
-        if (!auth()->user()->hasRole('admin')) {
-            return response()->json(['message' => 'Accès non autorisé'], 403);
-        }
+        // // Vérifier que l'utilisateur est admin
+        // if (!auth()->user()->hasRole('admin')) {
+        //     return response()->json(['message' => 'Accès non autorisé'], 403);
+        // }
 
         // Récupérer les filtres
         $periode = $request->get('periode', 'mois'); // jour, semaine, mois, annee, personnalise
