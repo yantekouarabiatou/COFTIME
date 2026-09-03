@@ -14,6 +14,7 @@ use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -38,16 +39,18 @@ class UserPeriodTimesheetExport implements
     protected Collection $entries;
     protected Carbon $debut;
     protected Carbon $fin;
+    protected ?string $logoPath;
 
     protected float $totalHeuresReelles = 0;
     protected float $totalHeuresTheoriques = 0;
 
-    public function __construct(User $user, Collection $entries, Carbon $debut, Carbon $fin)
+    public function __construct(User $user, Collection $entries, Carbon $debut, Carbon $fin, ?string $logoPath = null)
     {
-        $this->user    = $user;
-        $this->entries = $entries;
-        $this->debut   = $debut;
-        $this->fin     = $fin;
+        $this->user     = $user;
+        $this->entries  = $entries;
+        $this->debut    = $debut;
+        $this->fin      = $fin;
+        $this->logoPath = $logoPath;
 
         $this->totalHeuresReelles    = (float) $entries->sum('heures_reelles');
         $this->totalHeuresTheoriques = (float) $entries->sum('heures_theoriques');
@@ -146,10 +149,23 @@ class UserPeriodTimesheetExport implements
 
                 $lastDataRow = $this->entries->count() + 6;
 
+                // ===== LOGO COFIMA =====
+                if ($this->logoPath && is_file($this->logoPath)) {
+                    $drawing = new Drawing();
+                    $drawing->setName('Logo COFIMA');
+                    $drawing->setDescription('Logo COFIMA');
+                    $drawing->setPath($this->logoPath);
+                    $drawing->setHeight(48);
+                    $drawing->setCoordinates('A1');
+                    $drawing->setOffsetX(4);
+                    $drawing->setOffsetY(4);
+                    $drawing->setWorksheet($sheet);
+                }
+
                 // ===== TITRE =====
                 $sheet->setCellValue('A1', 'FEUILLE DE TEMPS');
                 $sheet->mergeCells('A1:J1');
-                $sheet->getRowDimension(1)->setRowHeight(30);
+                $sheet->getRowDimension(1)->setRowHeight(40);
                 $sheet->getStyle('A1')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 16, 'color' => ['argb' => $primary]],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],

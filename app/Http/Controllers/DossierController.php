@@ -290,6 +290,8 @@ class DossierController extends Controller
                 }
             }
 
+            $dossier->update($validated);
+
             DB::commit();
             Alert::success('Succès', 'Dossier mis à jour avec succès.');
             return redirect()->route('dossiers.show', $dossier)

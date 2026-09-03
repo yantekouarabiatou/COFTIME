@@ -602,15 +602,22 @@ class DailyEntryController extends Controller
         $slugName = \Illuminate\Support\Str::slug($user->prenom . '-' . $user->nom);
         $filename = "feuille-temps_{$slugName}_{$slug}";
 
+        $companySetting = CompanySetting::first();
+
         if ($format === 'excel') {
             return Excel::download(
-                new \App\Exports\UserPeriodTimesheetExport($user, $entries, $debut, $fin),
+                new \App\Exports\UserPeriodTimesheetExport(
+                    $user,
+                    $entries,
+                    $debut,
+                    $fin,
+                    $this->resolveLogoPath($companySetting)
+                ),
                 $filename . '.xlsx'
             );
         }
 
-        $companySetting = CompanySetting::first();
-        $logoBase64     = $this->resolveLogoBase64($companySetting);
+        $logoBase64 = $this->resolveLogoBase64($companySetting);
 
         $pdf = Pdf::loadView('pages.daily-entries.export.user-period-pdf', [
             'user'           => $user->load('poste'),
@@ -726,6 +733,27 @@ class DailyEntryController extends Controller
      */
     private function resolveLogoBase64(?CompanySetting $companySetting): ?string
     {
+        $path = $this->resolveLogoPath($companySetting);
+        if (!$path) {
+            return null;
+        }
+
+        $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'svg' => 'image/svg+xml',
+            default => 'image/png',
+        };
+
+        return "data:{$mime};base64," . base64_encode(file_get_contents($path));
+    }
+
+    /**
+     * Chemin disque du logo de l'entreprise, en suivant la même chaîne de
+     * résolution que CompanySetting::logo_url : logo uploadé
+     * (storage/app/public) puis logo par défaut du thème.
+     */
+    private function resolveLogoPath(?CompanySetting $companySetting): ?string
+    {
         $candidates = [];
 
         if ($companySetting?->logo) {
@@ -737,13 +765,7 @@ class DailyEntryController extends Controller
 
         foreach ($candidates as $path) {
             if (is_file($path)) {
-                $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
-                    'jpg', 'jpeg' => 'image/jpeg',
-                    'svg' => 'image/svg+xml',
-                    default => 'image/png',
-                };
-
-                return "data:{$mime};base64," . base64_encode(file_get_contents($path));
+                return $path;
             }
         }
 
