@@ -43,7 +43,7 @@ class DailyEntryController extends Controller
         if ($mineOnly) {
             // Vue "Mes listes de temps" : uniquement mes propres feuilles, quel que soit le rôle
             $query->where('user_id', $user->id);
-        } elseif ($user->hasRole('directeur-general')) {
+        } elseif ($user->hasRole(['directeur-general', 'admin'])) {
             // Voit tout, aucun filtre
         } elseif ($user->hasRole('manager')) {
             $subordinateIds = $user->subordinates()->pluck('id')->toArray();
@@ -63,7 +63,7 @@ class DailyEntryController extends Controller
         if (!$mineOnly && $request->filled('user')) {
             $requestedId = (int) $request->user;
             // Vérifier que l'utilisateur a le droit de filtrer sur cet ID
-            $canFilter = $user->hasRole('directeur-general')
+            $canFilter = $user->hasRole(['directeur-general', 'admin'])
                 || ($user->hasRole('manager') && $user->isManagerOf($requestedId));
 
             if ($canFilter) {
@@ -85,7 +85,7 @@ class DailyEntryController extends Controller
 
         // Liste collaborateurs pour le filtre select
         $users = collect();
-        if (!$mineOnly && $user->hasRole('directeur-general')) {
+        if (!$mineOnly && $user->hasRole(['directeur-general', 'admin'])) {
             $users = User::where('is_active', 1)->orderBy('prenom')->get(['id', 'prenom', 'nom']);
         } elseif (!$mineOnly && $user->hasRole('manager')) {
             $users = $user->subordinates()->where('is_active', 1)->orderBy('prenom')->get(['id', 'prenom', 'nom']);
