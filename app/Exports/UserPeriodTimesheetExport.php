@@ -82,21 +82,28 @@ class UserPeriodTimesheetExport implements
 
     public function map($entry): array
     {
+        // Tâche = le(s) dossier(s) travaillé(s) ; Activité = ce qui a été fait
+        // sur ce dossier (horaire + description des travaux). Une ligne par
+        // activité, les deux colonnes restant alignées entre elles.
+        $taches = $entry->timeEntries->map(function ($te) {
+            $client = $te->dossier?->client?->nom ? ' (' . $te->dossier->client->nom . ')' : '';
+            return '- ' . ($te->dossier?->nom ?? 'Sans dossier') . $client;
+        })->implode("\n");
+
         $activites = $entry->timeEntries->map(function ($te) {
             $debut = $te->heure_debut ? Carbon::parse($te->heure_debut)->format('H:i') : '';
             $fin   = $te->heure_fin ? Carbon::parse($te->heure_fin)->format('H:i') : '';
-            $plage = $debut && $fin ? " ({$debut}-{$fin})" : '';
-            $client = $te->dossier?->client?->nom ? ' - ' . $te->dossier->client->nom : '';
+            $plage = $debut && $fin ? "{$debut}-{$fin} : " : '';
 
-            return '- ' . ($te->dossier?->nom ?? 'Sans dossier') . $client . $plage
-                . ' : ' . number_format($te->heures_reelles, 2) . 'h';
+            return '- ' . $plage . ($te->travaux ?: 'Aucune description')
+                . ' (' . number_format($te->heures_reelles, 2) . 'h)';
         })->implode("\n");
 
         $ecart = $entry->heures_reelles - $entry->heures_theoriques;
 
         return [
             $entry->jour->format('d/m/Y'),
-            ucfirst($entry->jour->translatedFormat('l')),
+            $taches ?: 'Aucune tâche saisie',
             number_format($entry->heures_theoriques, 2),
             number_format($entry->heures_reelles, 2),
             number_format($ecart, 2),
@@ -119,15 +126,16 @@ class UserPeriodTimesheetExport implements
     {
         $sheet->getDefaultRowDimension()->setRowHeight(22);
         $sheet->getStyle('A:J')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle('B:B')->getAlignment()->setWrapText(true);
         $sheet->getStyle('F:F')->getAlignment()->setWrapText(true);
         $sheet->getStyle('G:G')->getAlignment()->setWrapText(true);
 
         $sheet->getColumnDimension('A')->setWidth(13);
-        $sheet->getColumnDimension('B')->setWidth(14);
+        $sheet->getColumnDimension('B')->setWidth(32);
         $sheet->getColumnDimension('C')->setWidth(16);
         $sheet->getColumnDimension('D')->setWidth(15);
         $sheet->getColumnDimension('E')->setWidth(12);
-        $sheet->getColumnDimension('F')->setWidth(55);
+        $sheet->getColumnDimension('F')->setWidth(45);
         $sheet->getColumnDimension('G')->setWidth(30);
         $sheet->getColumnDimension('H')->setWidth(13);
         $sheet->getColumnDimension('I')->setWidth(17);
@@ -209,8 +217,8 @@ class UserPeriodTimesheetExport implements
 
                 // ===== EN-TÊTES =====
                 $headers = [
-                    'A6' => 'Date', 'B6' => 'Jour', 'C6' => 'H. Théoriques', 'D6' => 'H. Réelles',
-                    'E6' => 'Écart', 'F6' => 'Dossiers / Activités', 'G6' => 'Commentaire',
+                    'A6' => 'Date', 'B6' => 'Tâche', 'C6' => 'H. Théoriques', 'D6' => 'H. Réelles',
+                    'E6' => 'Écart', 'F6' => 'Activité', 'G6' => 'Commentaire',
                     'H6' => 'Statut', 'I6' => 'Validée le', 'J6' => 'Motif refus',
                 ];
                 foreach ($headers as $cell => $value) {
@@ -231,7 +239,7 @@ class UserPeriodTimesheetExport implements
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFFFFFF']],
                     'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['argb' => 'FFD9D9D9']]],
                 ]);
-                $sheet->getStyle("A7:B{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("A7:A{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $sheet->getStyle("C7:E{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                 $sheet->getStyle("H7:I{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 

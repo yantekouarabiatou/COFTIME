@@ -116,12 +116,12 @@
         table.detail tbody tr.no-entries td { font-style: italic; color: #555; }
 
         .col-date    { width: 8%;  text-align: center; white-space: nowrap; }
-        .col-jour    { width: 7%;  text-align: center; }
-        .col-dossier { width: 24%; }
-        .col-horaire { width: 12%; }
-        .col-heures  { width: 12%; text-align: center; }
-        .col-statut  { width: 9%;  text-align: center; font-weight: bold; }
-        .col-comment { width: 28%; }
+        .col-tache   { width: 20%; }
+        .col-horaire { width: 11%; }
+        .col-heures  { width: 10%; text-align: center; }
+        .col-activite { width: 24%; }
+        .col-statut  { width: 8%;  text-align: center; font-weight: bold; }
+        .col-comment { width: 19%; }
 
         table.total-row { width: 100%; border-collapse: collapse; margin-top: 0; }
         table.total-row td {
@@ -171,10 +171,10 @@
         <thead>
             <tr>
                 <th class="col-date">Date</th>
-                <th class="col-jour">Jour</th>
-                <th class="col-dossier">Dossier(s) / Client(s)</th>
+                <th class="col-tache">Tâche</th>
                 <th class="col-horaire">Horaire(s)</th>
                 <th class="col-heures">Th. / Réel</th>
+                <th class="col-activite">Activité</th>
                 <th class="col-statut">Statut</th>
                 <th class="col-comment">Commentaire</th>
             </tr>
@@ -182,7 +182,9 @@
         <tbody>
             @forelse($entries as $entry)
                 @php
-                    $dossiers = $entry->timeEntries->map(function ($te) {
+                    // Tâche = le(s) dossier(s) travaillé(s) ; Activité = ce qui a
+                    // été fait dessus (description des travaux saisis).
+                    $taches = $entry->timeEntries->map(function ($te) {
                         $nom = $te->dossier?->nom ?? 'Sans dossier';
                         return $te->dossier?->client?->nom ? "{$nom} ({$te->dossier->client->nom})" : $nom;
                     })->implode('; ');
@@ -192,13 +194,17 @@
                         $f = $te->heure_fin ? \Carbon\Carbon::parse($te->heure_fin)->format('H:i') : '-';
                         return "{$d}-{$f}";
                     })->implode('; ');
+
+                    $activites = $entry->timeEntries->map(function ($te) {
+                        return $te->travaux ?: 'Aucune description';
+                    })->implode('; ');
                 @endphp
                 <tr class="{{ $entry->timeEntries->isEmpty() ? 'no-entries' : '' }}">
                     <td class="col-date">{{ $entry->jour->format('d/m/Y') }}</td>
-                    <td class="col-jour">{{ ucfirst($entry->jour->translatedFormat('l')) }}</td>
-                    <td class="col-dossier">{{ $dossiers ?: 'Aucune activité saisie' }}</td>
+                    <td class="col-tache">{{ $taches ?: 'Aucune tâche saisie' }}</td>
                     <td class="col-horaire">{{ $horaires ?: '-' }}</td>
                     <td class="col-heures">{{ fmtH($entry->heures_theoriques) }} / {{ fmtH($entry->heures_reelles) }}</td>
+                    <td class="col-activite">{{ $activites ?: 'Aucune activité saisie' }}</td>
                     <td class="col-statut">{{ ucfirst($entry->statut) }}</td>
                     <td class="col-comment">{{ $entry->commentaire ?: ($entry->motif_refus ? 'Refus : ' . $entry->motif_refus : '-') }}</td>
                 </tr>
