@@ -22,9 +22,10 @@ use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 /**
  * Export Excel - feuille de temps d'UN collaborateur sur une période donnée
- * (un mois, ou une plage de dates libre). Une ligne par jour saisi, avec le
- * détail des dossiers travaillés (activités) afin de suivre en un coup d'œil
- * qui a travaillé, quand, et sur quel dossier.
+ * (un mois, ou une plage de dates libre). Une grande ligne par jour saisi
+ * (Date/Heures/Statut/Commentaire fusionnés), avec une sous-ligne par
+ * activité (Activité = dossier travaillé, Tâche = ce qui a été fait dessus),
+ * afin de suivre en un coup d'œil qui a travaillé, quand, et sur quel dossier.
  */
 class UserPeriodTimesheetExport implements
     FromCollection,
@@ -44,6 +45,12 @@ class UserPeriodTimesheetExport implements
     protected float $totalHeuresReelles = 0;
     protected float $totalHeuresTheoriques = 0;
 
+    /** @var Collection Une ligne par activité (ou une ligne vide pour un jour sans activité) */
+    protected Collection $rows;
+
+    /** @var array<int,int> Index de la première ligne (dans $rows) -> nombre de sous-lignes de ce jour */
+    protected array $daySpans = [];
+
     public function __construct(User $user, Collection $entries, Carbon $debut, Carbon $fin, ?string $logoPath = null)
     {
         $this->user     = $user;
@@ -54,24 +61,54 @@ class UserPeriodTimesheetExport implements
 
         $this->totalHeuresReelles    = (float) $entries->sum('heures_reelles');
         $this->totalHeuresTheoriques = (float) $entries->sum('heures_theoriques');
+
+        $this->buildRows();
     }
 
     /**
-     * Libellé lisible de la période : "du DD/MM/YYYY au DD/MM/YYYY", basé sur
-     * la date du premier et du dernier enregistrement réel (et non la plage
-     * demandée dans le filtre).
+     * Aplatit les DailyEntry en une ligne par activité (TimeEntry), en gardant
+     * la trace du nombre de sous-lignes par jour pour pouvoir fusionner les
+     * colonnes "journalières" (Date, Heures, Statut, Commentaire...) ensuite.
+     */
+    private function buildRows(): void
+    {
+        $rows = collect();
+
+        foreach ($this->entries as $entry) {
+            $timeEntries = $entry->timeEntries;
+            $span = max($timeEntries->count(), 1);
+            $startIndex = $rows->count();
+            $this->daySpans[$startIndex] = $span;
+
+            if ($timeEntries->isEmpty()) {
+                $rows->push(['entry' => $entry, 'te' => null, 'first' => true]);
+                continue;
+            }
+
+            foreach ($timeEntries as $i => $te) {
+                $rows->push(['entry' => $entry, 'te' => $te, 'first' => $i === 0]);
+            }
+        }
+
+        $this->rows = $rows;
+    }
+
+    /**
+     * Libellé lisible de la période : "du DD/MM/YYYY au DD/MM/YYYY", du jour
+     * du premier enregistrement réel jusqu'à la fin de ce mois-là (et non la
+     * plage demandée dans le filtre).
      */
     protected function periodLabel(): string
     {
         $start = $this->entries->isNotEmpty() ? Carbon::parse($this->entries->min('jour')) : $this->debut;
-        $end   = $this->entries->isNotEmpty() ? Carbon::parse($this->entries->max('jour')) : $this->fin;
+        $end   = $start->copy()->endOfMonth();
 
         return 'du ' . $start->format('d/m/Y') . ' au ' . $end->format('d/m/Y');
     }
 
     public function collection()
     {
-        return $this->entries;
+        return $this->rows;
     }
 
     public function headings(): array
@@ -80,34 +117,40 @@ class UserPeriodTimesheetExport implements
         return [];
     }
 
-    public function map($entry): array
+    public function map($row): array
     {
-        // Tâche = le(s) dossier(s) travaillé(s) ; Activité = ce qui a été fait
-        // sur ce dossier (horaire + description des travaux). Une ligne par
-        // activité, les deux colonnes restant alignées entre elles.
-        $taches = $entry->timeEntries->map(function ($te) {
-            $client = $te->dossier?->client?->nom ? ' (' . $te->dossier->client->nom . ')' : '';
-            return '- ' . ($te->dossier?->nom ?? 'Sans dossier') . $client;
-        })->implode("\n");
+        $entry = $row['entry'];
+        $te    = $row['te'];
+        $first = $row['first'];
 
-        $activites = $entry->timeEntries->map(function ($te) {
+        if ($te === null) {
+            $activite = 'Aucune activité saisie';
+            $tache    = 'Aucune tâche saisie';
+        } else {
+            $client   = $te->dossier?->client?->nom ? ' (' . $te->dossier->client->nom . ')' : '';
+            $activite = ($te->dossier?->nom ?? 'Sans dossier') . $client;
+
             $debut = $te->heure_debut ? Carbon::parse($te->heure_debut)->format('H:i') : '';
             $fin   = $te->heure_fin ? Carbon::parse($te->heure_fin)->format('H:i') : '';
             $plage = $debut && $fin ? "{$debut}-{$fin} : " : '';
+            $tache = $plage . ($te->travaux ?: 'Aucune description') . ' (' . number_format($te->heures_reelles, 2) . 'h)';
+        }
 
-            return '- ' . $plage . ($te->travaux ?: 'Aucune description')
-                . ' (' . number_format($te->heures_reelles, 2) . 'h)';
-        })->implode("\n");
+        // Les colonnes "journalières" ne sont renseignées que sur la première
+        // sous-ligne du jour ; elles seront fusionnées visuellement ensuite.
+        if (!$first) {
+            return ['', $activite, '', '', '', $tache, '', '', '', ''];
+        }
 
         $ecart = $entry->heures_reelles - $entry->heures_theoriques;
 
         return [
             $entry->jour->format('d/m/Y'),
-            $taches ?: 'Aucune tâche saisie',
+            $activite,
             number_format($entry->heures_theoriques, 2),
             number_format($entry->heures_reelles, 2),
             number_format($ecart, 2),
-            $activites ?: 'Aucune activité saisie',
+            $tache,
             $entry->commentaire ?: '-',
             ucfirst($entry->statut),
             $entry->valide_le?->format('d/m/Y H:i') ?? '-',
@@ -124,14 +167,12 @@ class UserPeriodTimesheetExport implements
 
     public function styles(Worksheet $sheet)
     {
-        $sheet->getDefaultRowDimension()->setRowHeight(22);
+        $sheet->getDefaultRowDimension()->setRowHeight(20);
         $sheet->getStyle('A:J')->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle('B:B')->getAlignment()->setWrapText(true);
-        $sheet->getStyle('F:F')->getAlignment()->setWrapText(true);
         $sheet->getStyle('G:G')->getAlignment()->setWrapText(true);
 
         $sheet->getColumnDimension('A')->setWidth(13);
-        $sheet->getColumnDimension('B')->setWidth(32);
+        $sheet->getColumnDimension('B')->setWidth(30);
         $sheet->getColumnDimension('C')->setWidth(16);
         $sheet->getColumnDimension('D')->setWidth(15);
         $sheet->getColumnDimension('E')->setWidth(12);
@@ -152,10 +193,9 @@ class UserPeriodTimesheetExport implements
                 // Couleurs de la charte COFIMA (public/assets/css/custom.css)
                 $primary      = 'FF244584';
                 $primaryDark  = 'FF1A3461';
-                $primaryLight = 'FF2D5AA8';
                 $primaryTint  = 'FFEEF2F9';
 
-                $lastDataRow = $this->entries->count() + 6;
+                $lastDataRow = $this->rows->count() + 6;
 
                 // ===== LOGO COFIMA =====
                 if ($this->logoPath && is_file($this->logoPath)) {
@@ -217,8 +257,8 @@ class UserPeriodTimesheetExport implements
 
                 // ===== EN-TÊTES =====
                 $headers = [
-                    'A6' => 'Date', 'B6' => 'Tâche', 'C6' => 'H. Théoriques', 'D6' => 'H. Réelles',
-                    'E6' => 'Écart', 'F6' => 'Activité', 'G6' => 'Commentaire',
+                    'A6' => 'Date', 'B6' => 'Activité', 'C6' => 'H. Théoriques', 'D6' => 'H. Réelles',
+                    'E6' => 'Écart', 'F6' => 'Tâche', 'G6' => 'Commentaire',
                     'H6' => 'Statut', 'I6' => 'Validée le', 'J6' => 'Motif refus',
                 ];
                 foreach ($headers as $cell => $value) {
@@ -243,18 +283,29 @@ class UserPeriodTimesheetExport implements
                 $sheet->getStyle("C7:E{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                 $sheet->getStyle("H7:I{$lastDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                // Couleur alternée légère + ajustement hauteur selon nb d'activités
-                for ($row = 7; $row <= $lastDataRow; $row++) {
-                    if ($row % 2 === 0) {
-                        $sheet->getStyle("A{$row}:J{$row}")->applyFromArray([
+                // ===== FUSION DES COLONNES JOURNALIÈRES + ALTERNANCE PAR JOUR =====
+                // Une "grande ligne" = un jour ; les colonnes Date/Heures/Écart/
+                // Commentaire/Statut/Validée le/Motif refus sont fusionnées sur
+                // toute la hauteur du jour. Seules Activité (B) et Tâche (F)
+                // restent propres à chaque sous-ligne (une par activité).
+                $dayIndex = 0;
+                foreach ($this->daySpans as $startIndex => $span) {
+                    $startRow = 7 + $startIndex;
+                    $endRow   = $startRow + $span - 1;
+
+                    if ($span > 1) {
+                        foreach (['A', 'C', 'D', 'E', 'G', 'H', 'I', 'J'] as $col) {
+                            $sheet->mergeCells("{$col}{$startRow}:{$col}{$endRow}");
+                        }
+                    }
+
+                    if ($dayIndex % 2 === 0) {
+                        $sheet->getStyle("A{$startRow}:J{$endRow}")->applyFromArray([
                             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $primaryTint]],
                         ]);
                     }
-                    $value = $sheet->getCell("F{$row}")->getValue();
-                    if ($value && strpos($value, "\n") !== false) {
-                        $lineCount = substr_count($value, "\n") + 1;
-                        $sheet->getRowDimension($row)->setRowHeight(max(22, 18 * $lineCount));
-                    }
+
+                    $dayIndex++;
                 }
 
                 // ===== TOTAUX =====

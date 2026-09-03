@@ -13,10 +13,10 @@
     $totalReel      = $entries->sum('heures_reelles');
     $ecart          = $totalReel - $totalTheorique;
 
-    // La période affichée reflète la date du premier et du dernier
-    // enregistrement réel (et non la plage demandée dans le filtre).
+    // La période affichée part du jour du premier enregistrement réel
+    // jusqu'à la fin de ce mois-là (et non la plage demandée dans le filtre).
     $periodStart = $entries->isNotEmpty() ? \Carbon\Carbon::parse($entries->min('jour')) : $debut;
-    $periodEnd   = $entries->isNotEmpty() ? \Carbon\Carbon::parse($entries->max('jour')) : $fin;
+    $periodEnd   = $periodStart->copy()->endOfMonth();
 
     $periodLabel = 'du ' . $periodStart->format('d/m/Y') . ' au ' . $periodEnd->format('d/m/Y');
 @endphp
@@ -113,16 +113,19 @@
             font-size: 9px;
             color: #000;
         }
-        table.detail tbody tr:nth-child(even) td { background: #eef2f9; }
+        table.detail tbody tr.day-even td { background: #eef2f9; }
         table.detail tbody tr.no-entries td { font-style: italic; color: #555; }
 
-        .col-date    { width: 8%;  text-align: center; white-space: nowrap; }
-        .col-tache   { width: 20%; }
-        .col-horaire { width: 11%; }
-        .col-heures  { width: 10%; text-align: center; }
-        .col-activite { width: 24%; }
-        .col-statut  { width: 8%;  text-align: center; font-weight: bold; }
-        .col-comment { width: 19%; }
+        .col-date     { width: 8%;  text-align: center; white-space: nowrap; }
+        .col-heures   { width: 10%; text-align: center; }
+        .col-activite { width: 22%; }
+        .col-horaire  { width: 11%; text-align: center; white-space: nowrap; }
+        .col-tache    { width: 24%; }
+        .col-statut   { width: 8%;  text-align: center; font-weight: bold; }
+        .col-comment  { width: 17%; }
+
+        /* Sous-lignes : une activité = une ligne, groupée sous la date */
+        table.detail tbody tr.day-first td { border-top: 2px solid #a9bcd8; }
 
         table.total-row { width: 100%; border-collapse: collapse; margin-top: 0; }
         table.total-row td {
@@ -168,48 +171,66 @@
         &nbsp;-&nbsp; Période : <strong>{{ $periodLabel }}</strong>
     </div>
 
-    {{-- Tableau : une ligne par enregistrement --}}
+    {{-- Tableau : une grande ligne par jour (date), une sous-ligne par
+         activité saisie ce jour-là --}}
     <table class="detail">
         <thead>
             <tr>
                 <th class="col-date">Date</th>
-                <th class="col-tache">Tâche</th>
-                <th class="col-horaire">Horaire(s)</th>
                 <th class="col-heures">Th. / Réel</th>
                 <th class="col-activite">Activité</th>
+                <th class="col-horaire">Horaire</th>
+                <th class="col-tache">Tâche</th>
                 <th class="col-statut">Statut</th>
                 <th class="col-comment">Commentaire</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($entries as $entry)
+            @forelse($entries as $i => $entry)
                 @php
-                    // Tâche = le(s) dossier(s) travaillé(s) ; Activité = ce qui a
-                    // été fait dessus (description des travaux saisis).
-                    $taches = $entry->timeEntries->map(function ($te) {
-                        $nom = $te->dossier?->nom ?? 'Sans dossier';
-                        return $te->dossier?->client?->nom ? "{$nom} ({$te->dossier->client->nom})" : $nom;
-                    })->implode('; ');
-
-                    $horaires = $entry->timeEntries->map(function ($te) {
-                        $d = $te->heure_debut ? \Carbon\Carbon::parse($te->heure_debut)->format('H:i') : '-';
-                        $f = $te->heure_fin ? \Carbon\Carbon::parse($te->heure_fin)->format('H:i') : '-';
-                        return "{$d}-{$f}";
-                    })->implode('; ');
-
-                    $activites = $entry->timeEntries->map(function ($te) {
-                        return $te->travaux ?: 'Aucune description';
-                    })->implode('; ');
+                    // Activité = le dossier travaillé ; Tâche = ce qui a été
+                    // fait dessus (horaire + description des travaux saisis).
+                    // Chaque activité forme sa propre sous-ligne, sous la
+                    // grande ligne du jour (Date/Statut/Commentaire groupés).
+                    $lignes  = $entry->timeEntries;
+                    $rowspan = max($lignes->count(), 1);
+                    $dayClass = $i % 2 === 0 ? 'day-even' : '';
                 @endphp
-                <tr class="{{ $entry->timeEntries->isEmpty() ? 'no-entries' : '' }}">
-                    <td class="col-date">{{ $entry->jour->format('d/m/Y') }}</td>
-                    <td class="col-tache">{{ $taches ?: 'Aucune tâche saisie' }}</td>
-                    <td class="col-horaire">{{ $horaires ?: '-' }}</td>
-                    <td class="col-heures">{{ fmtH($entry->heures_theoriques) }} / {{ fmtH($entry->heures_reelles) }}</td>
-                    <td class="col-activite">{{ $activites ?: 'Aucune activité saisie' }}</td>
-                    <td class="col-statut">{{ ucfirst($entry->statut) }}</td>
-                    <td class="col-comment">{{ $entry->commentaire ?: ($entry->motif_refus ? 'Refus : ' . $entry->motif_refus : '-') }}</td>
-                </tr>
+
+                @if($lignes->isEmpty())
+                    <tr class="day-first no-entries {{ $dayClass }}">
+                        <td class="col-date">{{ $entry->jour->format('d/m/Y') }}</td>
+                        <td class="col-heures">{{ fmtH($entry->heures_theoriques) }} / {{ fmtH($entry->heures_reelles) }}</td>
+                        <td class="col-activite" colspan="3">Aucune activité saisie</td>
+                        <td class="col-statut">{{ ucfirst($entry->statut) }}</td>
+                        <td class="col-comment">{{ $entry->commentaire ?: ($entry->motif_refus ? 'Refus : ' . $entry->motif_refus : '-') }}</td>
+                    </tr>
+                @else
+                    @foreach($lignes as $j => $te)
+                        <tr class="{{ $dayClass }} {{ $j === 0 ? 'day-first' : '' }}">
+                            @if($j === 0)
+                                <td class="col-date" rowspan="{{ $rowspan }}">{{ $entry->jour->format('d/m/Y') }}</td>
+                                <td class="col-heures" rowspan="{{ $rowspan }}">{{ fmtH($entry->heures_theoriques) }} / {{ fmtH($entry->heures_reelles) }}</td>
+                            @endif
+                            <td class="col-activite">
+                                {{ $te->dossier?->nom ?? 'Sans dossier' }}
+                                @if($te->dossier?->client?->nom)
+                                    <br><span style="color:#666;">{{ $te->dossier->client->nom }}</span>
+                                @endif
+                            </td>
+                            <td class="col-horaire">
+                                {{ $te->heure_debut ? \Carbon\Carbon::parse($te->heure_debut)->format('H:i') : '-' }}
+                                -
+                                {{ $te->heure_fin ? \Carbon\Carbon::parse($te->heure_fin)->format('H:i') : '-' }}
+                            </td>
+                            <td class="col-tache">{{ $te->travaux ?: 'Aucune description' }} ({{ fmtH($te->heures_reelles) }})</td>
+                            @if($j === 0)
+                                <td class="col-statut" rowspan="{{ $rowspan }}">{{ ucfirst($entry->statut) }}</td>
+                                <td class="col-comment" rowspan="{{ $rowspan }}">{{ $entry->commentaire ?: ($entry->motif_refus ? 'Refus : ' . $entry->motif_refus : '-') }}</td>
+                            @endif
+                        </tr>
+                    @endforeach
+                @endif
             @empty
                 <tr>
                     <td colspan="7" style="text-align:center;padding:20px;">
