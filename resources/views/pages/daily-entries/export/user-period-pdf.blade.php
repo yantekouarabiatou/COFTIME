@@ -177,7 +177,7 @@
         <thead>
             <tr>
                 <th class="col-date">Date</th>
-                <th class="col-heures">Th. / Réel</th>
+                <th class="col-heures">Réel / Th.</th>
                 <th class="col-activite">Activité</th>
                 <th class="col-horaire">Horaire</th>
                 <th class="col-tache">Tâche</th>
@@ -200,7 +200,7 @@
                 @if($lignes->isEmpty())
                     <tr class="day-first no-entries {{ $dayClass }}">
                         <td class="col-date">{{ $entry->jour->format('d/m/Y') }}</td>
-                        <td class="col-heures">{{ fmtH($entry->heures_theoriques) }} / {{ fmtH($entry->heures_reelles) }}</td>
+                        <td class="col-heures">{{ fmtH($entry->heures_reelles) }} / {{ fmtH($entry->heures_theoriques) }}</td>
                         <td class="col-activite" colspan="3">Aucune activité saisie</td>
                         <td class="col-statut">{{ ucfirst($entry->statut) }}</td>
                         <td class="col-comment">{{ $entry->commentaire ?: ($entry->motif_refus ? 'Refus : ' . $entry->motif_refus : '-') }}</td>
@@ -210,7 +210,7 @@
                         <tr class="{{ $dayClass }} {{ $j === 0 ? 'day-first' : '' }}">
                             @if($j === 0)
                                 <td class="col-date" rowspan="{{ $rowspan }}">{{ $entry->jour->format('d/m/Y') }}</td>
-                                <td class="col-heures" rowspan="{{ $rowspan }}">{{ fmtH($entry->heures_theoriques) }} / {{ fmtH($entry->heures_reelles) }}</td>
+                                <td class="col-heures" rowspan="{{ $rowspan }}">{{ fmtH($entry->heures_reelles) }} / {{ fmtH($entry->heures_theoriques) }}</td>
                             @endif
                             <td class="col-activite">
                                 {{ $te->dossier?->nom ?? 'Sans dossier' }}
