@@ -13,10 +13,12 @@
     $totalReel      = $entries->sum('heures_reelles');
     $ecart          = $totalReel - $totalTheorique;
 
-    // La période affichée part du jour du premier enregistrement réel
-    // jusqu'à la fin de ce mois-là (et non la plage demandée dans le filtre).
-    $periodStart = $entries->isNotEmpty() ? \Carbon\Carbon::parse($entries->min('jour')) : $debut;
-    $periodEnd   = $periodStart->copy()->endOfMonth();
+    // La période affichée couvre systématiquement le mois entier (du 1er au
+    // dernier jour), quel que soit le collaborateur, plutôt que la plage
+    // exacte demandée dans le filtre.
+    $monthAnchor = $entries->isNotEmpty() ? \Carbon\Carbon::parse($entries->min('jour')) : $debut;
+    $periodStart = $monthAnchor->copy()->startOfMonth();
+    $periodEnd   = $monthAnchor->copy()->endOfMonth();
 
     $periodLabel = 'du ' . $periodStart->format('d/m/Y') . ' au ' . $periodEnd->format('d/m/Y');
 @endphp

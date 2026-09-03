@@ -94,14 +94,15 @@ class UserPeriodTimesheetExport implements
     }
 
     /**
-     * Libellé lisible de la période : "du DD/MM/YYYY au DD/MM/YYYY", du jour
-     * du premier enregistrement réel jusqu'à la fin de ce mois-là (et non la
-     * plage demandée dans le filtre).
+     * Libellé lisible de la période : "du DD/MM/YYYY au DD/MM/YYYY", couvrant
+     * systématiquement le mois entier (du 1er au dernier jour), quel que
+     * soit le collaborateur, plutôt que la plage exacte du filtre.
      */
     protected function periodLabel(): string
     {
-        $start = $this->entries->isNotEmpty() ? Carbon::parse($this->entries->min('jour')) : $this->debut;
-        $end   = $start->copy()->endOfMonth();
+        $anchor = $this->entries->isNotEmpty() ? Carbon::parse($this->entries->min('jour')) : $this->debut;
+        $start  = $anchor->copy()->startOfMonth();
+        $end    = $anchor->copy()->endOfMonth();
 
         return 'du ' . $start->format('d/m/Y') . ' au ' . $end->format('d/m/Y');
     }
