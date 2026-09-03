@@ -147,8 +147,8 @@ class UserPeriodTimesheetExport implements
         return [
             $entry->jour->format('d/m/Y'),
             $activite,
-            number_format($entry->heures_theoriques, 2),
             number_format($entry->heures_reelles, 2),
+            number_format($entry->heures_theoriques, 2),
             number_format($ecart, 2),
             $tache,
             $entry->commentaire ?: '-',
@@ -257,7 +257,7 @@ class UserPeriodTimesheetExport implements
 
                 // ===== EN-TÊTES =====
                 $headers = [
-                    'A6' => 'Date', 'B6' => 'Activité', 'C6' => 'H. Théoriques', 'D6' => 'H. Réelles',
+                    'A6' => 'Date', 'B6' => 'Activité', 'C6' => 'H. Réelles', 'D6' => 'H. Théoriques',
                     'E6' => 'Écart', 'F6' => 'Tâche', 'G6' => 'Commentaire',
                     'H6' => 'Statut', 'I6' => 'Validée le', 'J6' => 'Motif refus',
                 ];
@@ -312,8 +312,8 @@ class UserPeriodTimesheetExport implements
                 $totalRow = $lastDataRow + 2;
                 $sheet->setCellValue("A{$totalRow}", 'TOTAL');
                 $sheet->mergeCells("A{$totalRow}:B{$totalRow}");
-                $sheet->setCellValue("C{$totalRow}", number_format($this->totalHeuresTheoriques, 2));
-                $sheet->setCellValue("D{$totalRow}", number_format($this->totalHeuresReelles, 2));
+                $sheet->setCellValue("C{$totalRow}", number_format($this->totalHeuresReelles, 2));
+                $sheet->setCellValue("D{$totalRow}", number_format($this->totalHeuresTheoriques, 2));
                 $sheet->setCellValue("E{$totalRow}", number_format($ecartTotal, 2));
 
                 $sheet->getStyle("A{$totalRow}:J{$totalRow}")->applyFromArray([
