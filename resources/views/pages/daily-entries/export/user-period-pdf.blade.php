@@ -11,6 +11,7 @@
 
     $totalTheorique = $entries->sum('heures_theoriques');
     $totalReel      = $entries->sum('heures_reelles');
+    $ecart          = $totalReel - $totalTheorique;
 
     // La période affichée reflète la date du premier et du dernier
     // enregistrement réel (et non la plage demandée dans le filtre).
@@ -134,6 +135,7 @@
         }
         table.total-row td.label { text-align: left; }
         table.total-row td.value { text-align: right; width: 22%; }
+        table.total-row td.ecart { text-align: right; width: 20%; }
 
         /* -- Pied de page ---------------------------------------- */
         .footer {
@@ -223,6 +225,7 @@
             <tr>
                 <td class="label">TOTAL - {{ $entries->count() }} jour(s) - {{ fmtH($totalTheorique) }} prévues</td>
                 <td class="value">{{ fmtH($totalReel) }} réalisées</td>
+                <td class="ecart">{{ $ecart >= 0 ? 'Surplus' : 'Déficit' }} : {{ $ecart >= 0 ? '+' : '-' }}{{ fmtH(abs($ecart)) }}</td>
             </tr>
         </table>
     @endif
